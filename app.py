@@ -7,7 +7,7 @@ import matplotlib.patches as mpatches
 from sklearn.preprocessing import LabelEncoder
 
 st.set_page_config(
-    page_title="ChurnGuard Pro",
+    page_title="ChurnGuard",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -140,7 +140,7 @@ with st.sidebar:
 
 
 # ── Header ─────────────────────────────────────────────────────────
-st.markdown('<div class="page-title">ChurnGuard Pro</div><div class="page-sub">Predict customer churn · Understand why · Measure business impact</div>',unsafe_allow_html=True)
+st.markdown('<div class="page-title">ChurnGuard</div><div class="page-sub">Predict customer churn · Understand why · Measure business impact</div>',unsafe_allow_html=True)
 if model is None:
     st.error("Place churn_model_final.pkl, feature_names.pkl and metrics.json in the app folder.")
     st.stop()
@@ -522,4 +522,4 @@ with t5:
     st.markdown(f'<div style="background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.25);border-radius:14px;padding:24px;margin-top:20px;text-align:center;"><div style="font-family:JetBrains Mono,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#22c55e;margin-bottom:8px;">Annual projection</div><div style="font-family:Syne,sans-serif;font-size:42px;font-weight:700;color:#22c55e;">${net_ben2*12:,.0f}</div><div style="font-size:13px;color:#8885a0;margin-top:8px;">Net annual benefit · vs ${base_loss2*12:,.0f} lost doing nothing</div></div>',unsafe_allow_html=True)
 
 st.markdown("---")
-st.markdown('<div style="text-align:center;font-family:JetBrains Mono,monospace;font-size:10px;color:#3d3f5a;padding:14px 0;">ChurnGuard Pro v2.0 · Random Forest · AUC-ROC 0.8353 · Phase 2 Complete</div>',unsafe_allow_html=True)
+st.markdown('<div style="text-align:center;font-family:JetBrains Mono,monospace;font-size:10px;color:#3d3f5a;padding:14px 0;">ChurnGuard v2.0 · Random Forest · AUC-ROC 0.8353 · Phase 2 Complete</div>',unsafe_allow_html=True)
