@@ -305,11 +305,7 @@ footer     {visibility: hidden;}
 # ── Load model ─────────────────────────────────────────────────────────────────
 @st.cache_resource
 def load_package():
-    paths = [
-        'churn_model_final.pkl',
-        'customer churn/churn_model_final.pkl',
-        '/content/drive/MyDrive/customer churn/churn_model_final.pkl',
-    ]
+    paths = ['churn_model_final.pkl']
     for p in paths:
         if os.path.exists(p):
             with open(p, 'rb') as f:

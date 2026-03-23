@@ -11,7 +11,7 @@ A machine learning web app that predicts telecom customer churn in real time.
 
 ### Files needed in this folder
 ```
-churnguard/
+customer-churn-prediction/
 ├── app.py
 ├── requirements.txt
 ├── churn_model_final.pkl
