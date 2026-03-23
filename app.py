@@ -1,1116 +1,525 @@
 import streamlit as st
-import pickle
-import json
+import pickle, json, os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import os
+from sklearn.preprocessing import LabelEncoder
 
-# ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="ChurnGuard — Predict. Retain. Grow.",
+    page_title="ChurnGuard Pro",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ── CSS ────────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
-
-html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
-
-.stApp { background-color: #f7f6f2; color: #1a1a2e; }
-            
-/* ✅ PASTE HERE */
-label {
-    color: #1a1a2e !important;
-    font-weight: 500;
-}
-
-.stSelectbox label,
-.stSlider label,
-.stNumberInput label {
-    color: #1a1a2e !important;
-}
-
-/* Fix only visible input fields (safe targeting) */
-.stNumberInput input,
-.stTextInput input,
-.stTextArea textarea {
-    color: #1a1a2e !important;
-}
-            
-/* Ensure number input text is always visible */
-.stNumberInput input {
-    background-color: white !important;
-    color: #1a1a2e !important;
-    opacity: 1 !important;
-}
-
-[data-testid="stSidebar"] {
-    background-color: #1a1a2e;
-    border-right: none;
-}
-
-[data-testid="stSidebar"] .stSelectbox label,
-[data-testid="stSidebar"] .stSlider label { color: #9b97a0 !important; }
-            
-/* ───── FILE UPLOADER FIX ───── */
-[data-testid="stFileUploader"] {
-    background-color: #1a1a2e !important;
-    border-radius: 10px;
-    padding: 10px;
-}
-
-[data-testid="stFileUploader"] * {
-    color: #ffffff !important;
-}
-
-/* Fix "Browse files" button */
-[data-testid="stFileUploader"] button {
-    background-color: #2d2d4e !important;
-    color: #ffffff !important;
-    border: 1px solid #444 !important;
-}
-
-[data-testid="stMetric"] {
-    background: white;
-    border: 1px solid #e8e6df;
-    border-radius: 10px;
-    padding: 14px 16px;
-}
-[data-testid="stMetricLabel"] {
-    font-family: 'DM Mono', monospace !important;
-    font-size: 10px !important;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #9b97a0 !important;
-}
-[data-testid="stMetricValue"] {
-    font-family: 'DM Mono', monospace !important;
-    font-size: 22px !important;
-    color: #1a1a2e !important;
-}
-
-.stButton > button {
-    background-color: #1a1a2e;
-    color: #f7f6f2;
-    border: none;
-    border-radius: 8px;
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    padding: 14px 28px;
-    width: 100%;
-    transition: all 0.2s;
-}
-.stButton > button:hover {
-    background-color: #2d2d4e;
-    transform: translateY(-1px);
-}
-
-.stTabs [data-baseweb="tab-list"] {
-    background: white;
-    border-radius: 10px;
-    padding: 4px;
-    border: 1px solid #e8e6df;
-    gap: 4px;
-}
-.stTabs [data-baseweb="tab"] {
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 0.05em;
-    border-radius: 7px;
-    padding: 8px 20px;
-    color: #9b97a0;
-}
-.stTabs [aria-selected="true"] {
-    background-color: #1a1a2e !important;
-    color: white !important;
-}
-
-.stSelectbox > div > div,
-.stNumberInput > div > div > input {
-    background-color: white;
-    border: 1px solid #e8e6df;
-    border-radius: 8px;
-    color: #1a1a2e;
-    font-family: 'DM Sans', sans-serif;
-}
-
-.stSlider > div > div > div { background-color: #1a1a2e; }
-
-.risk-high {
-    background: #fff5f5;
-    border: 1.5px solid #feb2b2;
-    border-left: 5px solid #e53e3e;
-    border-radius: 12px;
-    padding: 28px;
-    margin: 16px 0;
-}
-.risk-medium {
-    background: #fffbeb;
-    border: 1.5px solid #fbd38d;
-    border-left: 5px solid #d69e2e;
-    border-radius: 12px;
-    padding: 28px;
-    margin: 16px 0;
-}
-.risk-low {
-    background: #f0fff4;
-    border: 1.5px solid #9ae6b4;
-    border-left: 5px solid #38a169;
-    border-radius: 12px;
-    padding: 28px;
-    margin: 16px 0;
-}
-.risk-title {
-    font-family: 'DM Mono', monospace;
-    font-size: 22px;
-    font-weight: 500;
-    margin-bottom: 6px;
-}
-.risk-prob {
-    font-family: 'DM Mono', monospace;
-    font-size: 48px;
-    font-weight: 500;
-    line-height: 1;
-    margin: 12px 0;
-}
-.risk-sub {
-    font-size: 13px;
-    color: #718096;
-    line-height: 1.7;
-}
-
-.section-tag {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: #9b97a0;
-    border-bottom: 1px solid #e8e6df;
-    padding-bottom: 8px;
-    margin-bottom: 16px;
-    margin-top: 20px;
-}
-
-.factor-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 10px 0;
-    border-bottom: 1px solid #f0ede8;
-}
-.factor-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    margin-top: 4px;
-    flex-shrink: 0;
-}
-.factor-label { font-size: 13px; color: #1a1a2e; font-weight: 500; }
-.factor-note  { font-size: 11px; color: #9b97a0; margin-top: 2px; }
-
-.action-box {
-    background: white;
-    border: 1px solid #e8e6df;
-    border-radius: 10px;
-    padding: 18px;
-    margin-top: 12px;
-}
-.action-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #9b97a0;
-    margin-bottom: 8px;
-}
-.action-text { font-size: 14px; color: #1a1a2e; line-height: 1.6; }
-
-.stat-card {
-    background: white;
-    border: 1px solid #e8e6df;
-    border-radius: 10px;
-    padding: 20px;
-    text-align: center;
-    margin: 4px 0;
-}
-.stat-num {
-    font-family: 'DM Mono', monospace;
-    font-size: 28px;
-    color: #1a1a2e;
-    font-weight: 500;
-}
-.stat-lbl {
-    font-size: 11px;
-    color: #9b97a0;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-top: 4px;
-}
-
-.shap-card {
-    background: white;
-    border: 1px solid #e8e6df;
-    border-radius: 10px;
-    padding: 20px;
-    margin: 8px 0;
-}
-.shap-feature { font-size: 13px; color: #1a1a2e; font-weight: 500; }
-.shap-impact  { font-size: 11px; color: #9b97a0; margin-top: 2px; }
-.shap-bar-bg  {
-    height: 6px;
-    background: #f0ede8;
-    border-radius: 3px;
-    margin-top: 8px;
-    overflow: hidden;
-}
-            
-/* ───── DOWNLOAD BUTTON FIX ───── */
-.stDownloadButton > button {
-    background-color: #1a1a2e !important;
-    color: #ffffff !important;
-    border-radius: 8px;
-    border: none;
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-    padding: 14px 20px;
-    width: 100%;
-}
-
-/* Hover */
-.stDownloadButton > button:hover {
-    background-color: #2d2d4e !important;
-    color: #ffffff !important;
-}
-
-/* Disabled state (important!) */
-.stDownloadButton > button:disabled {
-    background-color: #d4d2cc !important;
-    color: #6b6880 !important;
-}
-
-#MainMenu {visibility: hidden;}
-footer     {visibility: hidden;}
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500&display=swap');
+html,body,[class*="css"]{font-family:'Outfit',sans-serif;background:#0c0e16;color:#e2e0f0;}
+.stApp{background:#0c0e16;}
+[data-testid="stSidebar"]{background:#10121e;border-right:1px solid #1e2133;}
+[data-testid="stSidebar"] *{color:#c4c2d4!important;}
+[data-testid="stMetric"]{background:#13152a;border:1px solid #1e2133;border-radius:12px;padding:16px 18px;}
+[data-testid="stMetricLabel"]{font-family:'JetBrains Mono',monospace!important;font-size:9px!important;text-transform:uppercase;letter-spacing:.14em;color:#6b6888!important;}
+[data-testid="stMetricValue"]{font-family:'JetBrains Mono',monospace!important;font-size:24px!important;color:#e2e0f0!important;}
+.stTabs [data-baseweb="tab-list"]{background:#13152a;border-radius:12px;padding:5px;border:1px solid #1e2133;gap:4px;}
+.stTabs [data-baseweb="tab"]{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;border-radius:8px;padding:9px 18px;color:#6b6888;}
+.stTabs [aria-selected="true"]{background:linear-gradient(135deg,#6c63ff,#8b5cf6)!important;color:white!important;}
+.stButton>button{background:linear-gradient(135deg,#6c63ff,#8b5cf6);color:white;border:none;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.07em;padding:14px 28px;width:100%;transition:all .25s;text-transform:uppercase;}
+.stButton>button:hover{opacity:.88;transform:translateY(-2px);}
+.stSelectbox>div>div,.stNumberInput>div>div>input{background:#13152a!important;border:1px solid #1e2133!important;border-radius:8px!important;color:#e2e0f0!important;}
+.stSelectbox label,.stSlider label,.stNumberInput label{color:#8885a0!important;font-size:12px!important;}
+.stSlider>div>div>div{background:#6c63ff!important;}
+.page-title{font-family:'Syne',sans-serif;font-size:32px;font-weight:700;color:#e2e0f0;letter-spacing:-.02em;padding:8px 0 4px;}
+.page-sub{font-size:14px;color:#6b6888;font-weight:300;padding-bottom:20px;border-bottom:1px solid #1e2133;margin-bottom:24px;}
+.section-pill{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.15em;color:#6c63ff;background:rgba(108,99,255,.1);border:1px solid rgba(108,99,255,.25);border-radius:20px;padding:3px 10px;margin-bottom:10px;}
+.sec-label{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:#6b6888;border-bottom:1px solid #1e2133;padding-bottom:8px;margin:18px 0 14px;}
+.kpi-card{background:#13152a;border:1px solid #1e2133;border-radius:14px;padding:22px 18px;}
+.kpi-val{font-family:'Syne',sans-serif;font-size:34px;font-weight:700;line-height:1;margin-bottom:4px;}
+.kpi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#6b6888;}
+.kpi-sub{font-size:11px;color:#6b6888;margin-top:6px;}
+.risk-high{background:linear-gradient(135deg,#1a0d0d,#1f1010);border:1px solid #5a1a1a;border-left:4px solid #ef4444;border-radius:14px;padding:28px;}
+.risk-medium{background:linear-gradient(135deg,#1a160a,#1f1a0c);border:1px solid #5a4010;border-left:4px solid #f59e0b;border-radius:14px;padding:28px;}
+.risk-low{background:linear-gradient(135deg,#0a1a0e,#0c1f11);border:1px solid #1a5a25;border-left:4px solid #22c55e;border-radius:14px;padding:28px;}
+.risk-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
+.risk-prob{font-family:'Syne',sans-serif;font-size:54px;font-weight:700;line-height:1;margin:10px 0;}
+.risk-sub{font-size:13px;color:#8885a0;line-height:1.7;}
+.action-box{background:#13152a;border:1px solid #1e2133;border-radius:12px;padding:18px;margin-top:14px;}
+.action-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#6b6888;margin-bottom:8px;}
+.roi-card{background:#13152a;border:1px solid #1e2133;border-radius:14px;padding:22px;text-align:center;}
+.roi-num{font-family:'Syne',sans-serif;font-size:30px;font-weight:700;}
+.roi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#6b6888;margin-top:6px;}
+.stat-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1e2133;font-size:13px;}
+.stat-lbl{color:#8885a0;}
+.stat-val{font-family:'JetBrains Mono',monospace;color:#e2e0f0;}
+.info-banner{background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:10px;padding:14px 18px;font-size:13px;color:#a8a5c0;line-height:1.7;margin:12px 0 20px;}
+#MainMenu{visibility:hidden;}footer{visibility:hidden;}
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── Load model ─────────────────────────────────────────────────────────────────
+# ── Load ───────────────────────────────────────────────────────────
 @st.cache_resource
 def load_package():
-    paths = ['churn_model_final.pkl']
-    for p in paths:
+    for p in ['churn_model_final.pkl',
+              'customer churn/churn_model_final.pkl',
+              '/content/drive/MyDrive/customer churn/churn_model_final.pkl']:
         if os.path.exists(p):
-            with open(p, 'rb') as f:
-                pkg = pickle.load(f)
-            if isinstance(pkg, dict):
-                return pkg['model'], float(pkg['threshold']), pkg['features']
-            return pkg, 0.63, None
-    return None, 0.63, None
+            with open(p,'rb') as f: pkg=pickle.load(f)
+            if isinstance(pkg,dict): return pkg['model'],float(pkg['threshold']),pkg['features']
+            return pkg,0.63,None
+    return None,0.63,None
 
 @st.cache_data
 def load_metrics():
-    paths = ['metrics.json',
-             'customer churn/metrics.json',
-             '/content/drive/MyDrive/customer churn/metrics.json']
-    for p in paths:
+    for p in ['metrics.json',
+              'customer churn/metrics.json',
+              '/content/drive/MyDrive/customer churn/metrics.json']:
         if os.path.exists(p):
-            with open(p) as f:
-                return json.load(f)
+            with open(p) as f: return json.load(f)
     return {}
 
-model, THRESHOLD, feature_names = load_package()
+model,THRESHOLD,feature_names = load_package()
 metrics = load_metrics()
-
-DEFAULT_FEATURES = [
-    'gender','SeniorCitizen','Partner','Dependents','tenure',
-    'PhoneService','MultipleLines','InternetService',
-    'OnlineSecurity','OnlineBackup','DeviceProtection',
-    'TechSupport','StreamingTV','StreamingMovies',
-    'Contract','PaperlessBilling','PaymentMethod',
-    'MonthlyCharges','TotalCharges'
-]
 if feature_names is None:
-    feature_names = DEFAULT_FEATURES
+    feature_names=['gender','SeniorCitizen','Partner','Dependents','tenure',
+                   'PhoneService','MultipleLines','InternetService',
+                   'OnlineSecurity','OnlineBackup','DeviceProtection',
+                   'TechSupport','StreamingTV','StreamingMovies',
+                   'Contract','PaperlessBilling','PaymentMethod',
+                   'MonthlyCharges','TotalCharges']
 
-# ── Encoding helpers ───────────────────────────────────────────────────────────
-CONTRACT_MAP = {"Month-to-month": 0, "One year": 1, "Two year": 2}
-INTERNET_MAP = {"DSL": 0, "Fiber optic": 1, "No": 2}
-TECH_MAP     = {"No": 0, "No internet service": 1, "Yes": 2}
-BINARY_MAP   = {"No": 0, "Yes": 1}
-PAYMENT_MAP  = {
-    "Bank transfer (automatic)": 0,
-    "Credit card (automatic)"  : 1,
-    "Electronic check"         : 2,
-    "Mailed check"             : 3,
-}
+CONTRACT_MAP={"Month-to-month":0,"One year":1,"Two year":2}
+INTERNET_MAP={"DSL":0,"Fiber optic":1,"No":2}
+TECH_MAP    ={"No":0,"No internet service":1,"Yes":2}
+BINARY_MAP  ={"No":0,"Yes":1}
+PAYMENT_MAP ={"Bank transfer (automatic)":0,"Credit card (automatic)":1,
+              "Electronic check":2,"Mailed check":3}
 
-def build_input(tenure, monthly, contract, internet, tech,
-                online_sec, online_bkp, senior, partner,
-                dependents, paperless, payment):
-    total = monthly * tenure
-    sec_val = BINARY_MAP.get(online_sec, 0) if online_sec != "No internet service" else 0
-    bkp_val = BINARY_MAP.get(online_bkp, 0) if online_bkp != "No internet service" else 0
-    return np.array([[
-        1,
-        BINARY_MAP[senior],
-        BINARY_MAP[partner],
-        BINARY_MAP[dependents],
-        tenure,
-        1, 1,
-        INTERNET_MAP[internet],
-        sec_val,
-        bkp_val,
-        0,
-        TECH_MAP[tech],
-        0, 0,
-        CONTRACT_MAP[contract],
-        BINARY_MAP[paperless],
-        PAYMENT_MAP[payment],
-        monthly,
-        total,
-    ]])
+def build_input(tenure,monthly,contract,internet,tech,sec,bkp,
+                senior,partner,dep,paperless,payment):
+    total=monthly*tenure
+    sv=BINARY_MAP.get(sec,0) if sec!="No internet service" else 0
+    bv=BINARY_MAP.get(bkp,0) if bkp!="No internet service" else 0
+    return np.array([[1,BINARY_MAP[senior],BINARY_MAP[partner],BINARY_MAP[dep],
+                      tenure,1,1,INTERNET_MAP[internet],sv,bv,0,
+                      TECH_MAP[tech],0,0,CONTRACT_MAP[contract],
+                      BINARY_MAP[paperless],PAYMENT_MAP[payment],monthly,total]])
 
-def predict(input_arr):
-    proba = model.predict_proba(input_arr)[0][1]
-    pred  = int(proba >= THRESHOLD)
-    return proba, pred
+def predict(arr):
+    p=model.predict_proba(arr)[0][1]; return p,int(p>=THRESHOLD)
 
-def risk_label(proba):
-    if proba >= 0.75: return "HIGH",        "#e53e3e", "risk-high"
-    if proba >= THRESHOLD: return "MEDIUM", "#d69e2e", "risk-medium"
-    return "LOW",                           "#38a169", "risk-low"
+def risk_info(p):
+    if p>=0.75:       return "HIGH",  "#ef4444","risk-high"
+    if p>=THRESHOLD:  return "MEDIUM","#f59e0b","risk-medium"
+    return               "LOW",  "#22c55e","risk-low"
+
+def ps(fig,ax):
+    fig.patch.set_facecolor('#13152a'); ax.set_facecolor('#13152a')
+    ax.tick_params(colors='#6b6888',labelsize=9)
+    for sp in ax.spines.values(): sp.set_color('#1e2133')
+    ax.title.set_color('#e2e0f0')
+    ax.xaxis.label.set_color('#6b6888'); ax.yaxis.label.set_color('#6b6888')
 
 
-# ── Sidebar ────────────────────────────────────────────────────────────────────
+# ── Sidebar ────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("""
-    <div style='padding: 8px 0 24px;'>
-      <div style='font-family: DM Mono, monospace; font-size: 22px;
-                  font-weight: 500; letter-spacing: -0.02em;'>
-        🛡️ ChurnGuard
-      </div>
-      <div style='font-size: 11px; color: #6b6880; margin-top: 4px;
-                  letter-spacing: 0.08em; text-transform: uppercase;'>
-        Predict · Retain · Grow
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    auc  = metrics.get('metrics', {}).get('auc_roc',   metrics.get('final_auc',      0.8353))
-    prec = metrics.get('metrics', {}).get('precision', metrics.get('final_precision', 0.6036))
-    rec  = metrics.get('metrics', {}).get('recall',    metrics.get('final_recall',    0.6230))
-    f1   = metrics.get('metrics', {}).get('f1_score',  metrics.get('final_f1',        0.6132))
-
-    st.markdown('<div class="section-tag" style="color:#6b6880; border-color:#2d2d4e;">Model stats</div>',
-                unsafe_allow_html=True)
-
-    c1, c2 = st.columns(2)
-    c1.metric("AUC-ROC",   f"{auc:.3f}")
-    c2.metric("F1 Score",  f"{f1:.3f}")
-    c1.metric("Precision", f"{prec:.1%}")
-    c2.metric("Recall",    f"{rec:.1%}")
-
-    st.markdown(f"""
-    <div style='margin-top: 20px; padding: 14px; background: #12122a;
-                border-radius: 8px; border: 1px solid #2d2d4e;'>
-        <div style='font-family: DM Mono, monospace; font-size: 9px;
-                    text-transform: uppercase; letter-spacing: 0.12em;
-                    color: #6b6880; margin-bottom: 6px;'>Decision threshold</div>
-        <div style='font-family: DM Mono, monospace; font-size: 24px;
-                    color: #e8e6df;'>{THRESHOLD:.2f}</div>
-        <div style='font-size: 11px; color: #6b6880; margin-top: 6px; line-height: 1.6;'>
-            Tuned from default 0.50.<br>
-            Customers above this probability<br>are flagged as at-risk.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    if model is None:
-        st.error("Model not found. Place churn_model_final.pkl in the app folder.")
+    st.markdown("<div style='font-family:Syne,sans-serif;font-size:24px;font-weight:700;color:#e2e0f0;padding:8px 0 4px;'>🛡️ ChurnGuard</div><div style='font-family:JetBrains Mono,monospace;font-size:9px;color:#6b6888;letter-spacing:.15em;text-transform:uppercase;margin-bottom:24px;'>Pro · v2.0</div>",unsafe_allow_html=True)
+    auc =metrics.get('metrics',{}).get('auc_roc', metrics.get('final_auc',     0.8353))
+    prec=metrics.get('metrics',{}).get('precision',metrics.get('final_precision',0.6036))
+    rec =metrics.get('metrics',{}).get('recall',  metrics.get('final_recall',  0.6230))
+    f1  =metrics.get('metrics',{}).get('f1_score',metrics.get('final_f1',      0.6132))
+    st.markdown('<div class="sec-label">Model performance</div>',unsafe_allow_html=True)
+    c1,c2=st.columns(2)
+    c1.metric("AUC-ROC",f"{auc:.3f}"); c2.metric("F1",f"{f1:.3f}")
+    c1.metric("Precision",f"{prec:.1%}"); c2.metric("Recall",f"{rec:.1%}")
+    st.markdown(f"<div style='margin-top:18px;padding:14px;background:#0c0e16;border-radius:10px;border:1px solid #1e2133;'><div style='font-family:JetBrains Mono,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#6b6888;margin-bottom:6px;'>Threshold</div><div style='font-family:Syne,sans-serif;font-size:28px;font-weight:700;color:#6c63ff;'>{THRESHOLD:.2f}</div><div style='font-size:11px;color:#6b6888;margin-top:6px;line-height:1.7;'>Tuned from 0.50 default</div></div>",unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:18px;font-size:12px;color:#8885a0;line-height:1.9;'>Algorithm: Random Forest<br>Dataset: IBM Telco 7,043<br>Train: 5,634 · Test: 1,407<br>Overfit gap: 0.013</div>",unsafe_allow_html=True)
+    if model is None: st.error("Model file not found.")
 
 
-# ── Header ─────────────────────────────────────────────────────────────────────
-st.markdown("""
-<div style='padding: 8px 0 28px;'>
-  <div style='font-family: DM Mono, monospace; font-size: 30px;
-              font-weight: 500; color: #1a1a2e; letter-spacing: -0.02em;'>
-    Customer Churn Prediction
-  </div>
-  <div style='font-size: 14px; color: #9b97a0; margin-top: 6px;'>
-    Identify at-risk customers before they leave — and act in time.
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
+# ── Header ─────────────────────────────────────────────────────────
+st.markdown('<div class="page-title">ChurnGuard Pro</div><div class="page-sub">Predict customer churn · Understand why · Measure business impact</div>',unsafe_allow_html=True)
 if model is None:
-    st.error("Place `churn_model_final.pkl`, `feature_names.pkl` and `metrics.json` in the same folder as app.py")
+    st.error("Place churn_model_final.pkl, feature_names.pkl and metrics.json in the app folder.")
     st.stop()
 
-# ── Tabs ───────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs([
-    "MODULE 1 — Single Prediction",
-    "MODULE 2 — Bulk Prediction",
-    "MODULE 5 — Why Did It Predict This?",
-])
+t1,t2,t3,t4,t5=st.tabs(["01 · Single Predict","02 · Bulk Predict","03 · Analytics","05 · Explainability","06 · ROI Calculator"])
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# MODULE 1 — Single prediction
-# ══════════════════════════════════════════════════════════════════════════════
-with tab1:
-    st.markdown('<div class="section-tag">Customer details</div>',
-                unsafe_allow_html=True)
-
-    col_a, col_b, col_c = st.columns(3)
-
-    with col_a:
+# ══════════════════════════════════════════════════════════════════
+# TAB 1 — Single Prediction
+# ══════════════════════════════════════════════════════════════════
+with t1:
+    st.markdown('<div class="section-pill">Module 01</div>',unsafe_allow_html=True)
+    st.markdown("### Single Customer Prediction")
+    ca,cb,cc=st.columns(3)
+    with ca:
         st.markdown("**Account**")
-        tenure  = st.slider("Tenure (months)", 0, 72, 12)
-        monthly = st.number_input("Monthly Charges ($)",
-                                  min_value=18.0, max_value=120.0,
-                                  value=65.0, step=0.5)
-        st.caption(f"Estimated total: **${monthly * tenure:,.0f}**")
-        contract = st.selectbox("Contract Type",
-                                ["Month-to-month","One year","Two year"])
-        payment  = st.selectbox("Payment Method",
-                                ["Electronic check","Mailed check",
-                                 "Bank transfer (automatic)",
-                                 "Credit card (automatic)"])
-
-    with col_b:
+        tenure =st.slider("Tenure (months)",0,72,12)
+        monthly=st.number_input("Monthly charges ($)",18.0,120.0,65.0,0.5)
+        st.caption(f"Est. total: **${monthly*tenure:,.0f}**")
+        contract=st.selectbox("Contract",["Month-to-month","One year","Two year"])
+        payment =st.selectbox("Payment",["Electronic check","Mailed check","Bank transfer (automatic)","Credit card (automatic)"])
+    with cb:
         st.markdown("**Services**")
-        internet   = st.selectbox("Internet Service",
-                                  ["DSL","Fiber optic","No"])
-        tech       = st.selectbox("Tech Support",
-                                  ["No","Yes","No internet service"])
-        online_sec = st.selectbox("Online Security",
-                                  ["No","Yes","No internet service"])
-        online_bkp = st.selectbox("Online Backup",
-                                  ["No","Yes","No internet service"])
-
-    with col_c:
+        internet  =st.selectbox("Internet",["DSL","Fiber optic","No"])
+        tech      =st.selectbox("Tech support",["No","Yes","No internet service"])
+        online_sec=st.selectbox("Online security",["No","Yes","No internet service"])
+        online_bkp=st.selectbox("Online backup",["No","Yes","No internet service"])
+    with cc:
         st.markdown("**Demographics**")
-        senior     = st.selectbox("Senior Citizen",  ["No","Yes"])
-        partner    = st.selectbox("Has Partner",      ["No","Yes"])
-        dependents = st.selectbox("Has Dependents",   ["No","Yes"])
-        paperless  = st.selectbox("Paperless Billing",["No","Yes"])
+        senior   =st.selectbox("Senior citizen",["No","Yes"])
+        partner  =st.selectbox("Has partner",["No","Yes"])
+        dep      =st.selectbox("Has dependents",["No","Yes"])
+        paperless=st.selectbox("Paperless billing",["No","Yes"])
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    run = st.button("Run Churn Prediction →")
-
-    if run:
-        inp   = build_input(tenure, monthly, contract, internet, tech,
-                            online_sec, online_bkp, senior, partner,
-                            dependents, paperless, payment)
-        proba, pred = predict(inp)
-        label, color, css_class = risk_label(proba)
-
+    st.markdown("<br>",unsafe_allow_html=True)
+    if st.button("Run Prediction →",key="r1"):
+        inp=build_input(tenure,monthly,contract,internet,tech,online_sec,online_bkp,senior,partner,dep,paperless,payment)
+        proba,pred=predict(inp); label,color,css=risk_info(proba)
         st.markdown("---")
-        st.markdown('<div class="section-tag">Result</div>',
-                    unsafe_allow_html=True)
-
-        res_col, chart_col = st.columns([1, 1])
-
-        with res_col:
-            st.markdown(f"""
-            <div class="{css_class}">
-                <div class="risk-title" style="color:{color};">
-                    {label} CHURN RISK
-                </div>
-                <div class="risk-prob" style="color:{color};">{proba:.1%}</div>
-                <div class="risk-sub">
-                    {"This customer is likely to leave. Act now." if pred == 1
-                     else "This customer appears stable. Consider upselling."}
-                    <br>Threshold: {THRESHOLD:.2f} &nbsp;|&nbsp;
-                    Prediction: {"Will churn" if pred == 1 else "Will stay"}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Risk factors
-            st.markdown('<div class="section-tag">Why this score?</div>',
-                        unsafe_allow_html=True)
-            factors = []
-            if tenure < 6:
-                factors.append(("Very new customer (<6 months)", "#e53e3e",
-                                 "Newest customers churn most often"))
-            elif tenure < 12:
-                factors.append(("Short tenure (<12 months)", "#d69e2e",
-                                 "Still in the high-risk early period"))
-            if contract == "Month-to-month":
-                factors.append(("Month-to-month contract", "#e53e3e",
-                                 "3× higher churn than annual contracts"))
-            if internet == "Fiber optic":
-                factors.append(("Fiber optic internet", "#d69e2e",
-                                 "Fiber users churn more than DSL users"))
-            if monthly > 75:
-                factors.append((f"High charges (${monthly:.0f}/mo)", "#d69e2e",
-                                 "High bill = higher churn risk"))
-            if tech == "No":
-                factors.append(("No tech support", "#9b97a0",
-                                 "Support subscribers churn less"))
-            if online_sec == "No":
-                factors.append(("No online security", "#9b97a0",
-                                 "Add-on subscribers are stickier"))
+        rc,gc=st.columns(2)
+        with rc:
+            st.markdown(f'<div class="{css}"><div class="risk-title" style="color:{color};">{label} RISK</div><div class="risk-prob" style="color:{color};">{proba:.1%}</div><div class="risk-sub">{"Likely to leave — act now." if pred==1 else "Stable — consider upsell."}<br>Threshold: {THRESHOLD:.2f}</div></div>',unsafe_allow_html=True)
+            st.markdown('<div class="sec-label" style="margin-top:16px;">Risk factors</div>',unsafe_allow_html=True)
+            factors=[]
+            if tenure<6:    factors.append(("Tenure < 6 months","#ef4444","New customers churn most"))
+            elif tenure<12: factors.append(("Tenure < 12 months","#f59e0b","Still in high-risk window"))
+            if contract=="Month-to-month": factors.append(("Month-to-month contract","#ef4444","3× higher churn vs annual"))
+            if internet=="Fiber optic":   factors.append(("Fiber optic","#f59e0b","Higher churn than DSL"))
+            if monthly>75: factors.append((f"High charges ${monthly:.0f}/mo","#f59e0b","Above avg bill"))
+            if tech=="No":  factors.append(("No tech support","#8885a0","Support = stickier"))
             if not factors:
-                factors.append(("Long-term loyal customer", "#38a169",
-                                 f"{tenure} months tenure — very stable"))
-                factors.append(("Committed contract", "#38a169",
-                                 f"{contract} — low churn rate"))
-
-            for f_label, f_color, f_note in factors:
-                st.markdown(f"""
-                <div class="factor-row">
-                    <div class="factor-dot" style="background:{f_color};"></div>
-                    <div>
-                        <div class="factor-label">{f_label}</div>
-                        <div class="factor-note">{f_note}</div>
-                    </div>
-                </div>""", unsafe_allow_html=True)
-
-        with chart_col:
-            # Gauge bar
-            fig, ax = plt.subplots(figsize=(6, 2.8),
-                                   facecolor='#f7f6f2')
-            ax.set_facecolor('#f7f6f2')
-            bar_c = '#e53e3e' if label == "HIGH" else \
-                    '#d69e2e' if label == "MEDIUM" else '#38a169'
-            ax.barh([''], [proba],       color=bar_c,  height=0.4)
-            ax.barh([''], [1 - proba],   left=[proba],
-                    color='#e8e6df', height=0.4)
-            ax.axvline(x=THRESHOLD, color='#1a1a2e', linestyle='--',
-                       lw=1.5, label=f'Threshold ({THRESHOLD:.2f})')
-            ax.set_xlim(0, 1)
-            ax.set_xticks([0, 0.25, 0.5, THRESHOLD, 0.75, 1.0])
-            ax.set_xticklabels(['0%','25%','50%',
-                                f'{THRESHOLD:.0%}↑','75%','100%'],
-                               fontsize=9, color='#9b97a0')
-            ax.tick_params(axis='y', colors='#f7f6f2')
-            for sp in ax.spines.values():
-                sp.set_visible(False)
-            ax.set_title(f'Churn probability: {proba:.1%}',
-                         color='#1a1a2e', fontsize=12, pad=10,
-                         fontfamily='monospace')
-            ax.legend(facecolor='#f7f6f2', edgecolor='#e8e6df',
-                      labelcolor='#9b97a0', fontsize=9)
-            st.pyplot(fig)
-            plt.close()
-
-            # Recommended action
-            st.markdown('<div class="section-tag" style="margin-top:8px;">Recommended action</div>',
-                        unsafe_allow_html=True)
-            if pred == 1:
-                if contract == "Month-to-month":
-                    action = "Offer a <b>20% discount on annual contract upgrade</b>. Month-to-month customers switching to annual plans have the highest retention rate."
-                elif tech == "No":
-                    action = "Offer <b>3 months of free tech support</b>. Customers with support churn 30% less."
-                elif monthly > 75:
-                    action = "Offer a <b>loyalty discount of 15% on monthly charges</b> for the next 6 months."
-                else:
-                    action = "Assign a <b>dedicated account manager</b> to reach out within 48 hours."
-                ltv = monthly * 24
-                st.markdown(f"""
-                <div class="action-box">
-                    <div class="action-label">Retention strategy</div>
-                    <div class="action-text">{action}</div>
-                    <div style="margin-top:14px; padding-top:12px;
-                                border-top:1px solid #f0ede8;">
-                        <span style="font-family:DM Mono,monospace;
-                                     font-size:10px; color:#9b97a0;">
-                            RETENTION COST
-                        </span>
-                        <span style="font-family:DM Mono,monospace;
-                                     font-size:13px; color:#1a1a2e;
-                                     margin-left:8px;">~$15</span>
-                        <span style="font-family:DM Mono,monospace;
-                                     font-size:10px; color:#9b97a0;
-                                     margin-left:20px;">LTV AT RISK</span>
-                        <span style="font-family:DM Mono,monospace;
-                                     font-size:13px; color:#e53e3e;
-                                     margin-left:8px;">${ltv:,.0f}</span>
-                    </div>
-                </div>""", unsafe_allow_html=True)
+                factors.append(("Loyal customer","#22c55e",f"{tenure}mo tenure"))
+                factors.append(("Committed contract","#22c55e",f"{contract}"))
+            for fl,fc,fn in factors:
+                st.markdown(f"<div style='display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #1e2133;align-items:flex-start;'><div style='width:8px;height:8px;border-radius:50%;background:{fc};margin-top:5px;flex-shrink:0;'></div><div><div style='font-size:13px;color:#e2e0f0;font-weight:500;'>{fl}</div><div style='font-size:11px;color:#6b6888;margin-top:2px;'>{fn}</div></div></div>",unsafe_allow_html=True)
+        with gc:
+            fig,ax=plt.subplots(figsize=(6,2.5)); ps(fig,ax)
+            bc='#ef4444' if label=="HIGH" else '#f59e0b' if label=="MEDIUM" else '#22c55e'
+            ax.barh([''],[proba],color=bc,height=0.38)
+            ax.barh([''],[1-proba],left=[proba],color='#1e2133',height=0.38)
+            ax.axvline(THRESHOLD,color='#6c63ff',ls='--',lw=1.5,label=f'Threshold {THRESHOLD:.2f}')
+            ax.set_xlim(0,1); ax.set_xticks([0,.25,.5,THRESHOLD,.75,1.0])
+            ax.set_xticklabels(['0%','25%','50%',f'{THRESHOLD:.0%}↑','75%','100%'],fontsize=8)
+            ax.tick_params(axis='y',left=False,labelleft=False)
+            ax.set_title(f'Churn probability: {proba:.1%}',fontsize=11,fontfamily='monospace',pad=10)
+            ax.legend(facecolor='#13152a',edgecolor='#1e2133',labelcolor='#8885a0',fontsize=8)
+            st.pyplot(fig); plt.close()
+            st.markdown('<div class="sec-label" style="margin-top:8px;">Recommended action</div>',unsafe_allow_html=True)
+            if pred==1:
+                if contract=="Month-to-month": act="Offer a <b>20% discount on annual contract</b>"
+                elif tech=="No":               act="Offer <b>3 months free tech support</b>"
+                elif monthly>75:               act="Offer a <b>15% loyalty discount</b> for 6 months"
+                else:                          act="Assign a <b>dedicated account manager</b>"
+                ltv=monthly*24
+                st.markdown(f'<div class="action-box"><div class="action-lbl">Retention strategy</div><div style="font-size:13px;color:#e2e0f0;line-height:1.7;">{act}</div><div style="margin-top:12px;padding-top:12px;border-top:1px solid #1e2133;display:flex;gap:24px;"><div><div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#6b6888;text-transform:uppercase;letter-spacing:.1em;">Cost</div><div style="font-family:JetBrains Mono,monospace;font-size:14px;color:#e2e0f0;">~$15</div></div><div><div style="font-family:JetBrains Mono,monospace;font-size:9px;color:#6b6888;text-transform:uppercase;letter-spacing:.1em;">LTV at risk</div><div style="font-family:JetBrains Mono,monospace;font-size:14px;color:#ef4444;">${ltv:,.0f}</div></div></div></div>',unsafe_allow_html=True)
             else:
-                st.markdown(f"""
-                <div class="action-box">
-                    <div class="action-label">Growth opportunity</div>
-                    <div class="action-text">
-                        Customer is stable. Consider offering premium add-ons
-                        like Streaming TV, Device Protection, or upgrading
-                        their internet plan.
-                    </div>
-                    <div style="margin-top:14px; padding-top:12px;
-                                border-top:1px solid #f0ede8;
-                                font-size:12px; color:#9b97a0;">
-                        No retention spend needed right now.
-                    </div>
-                </div>""", unsafe_allow_html=True)
+                st.markdown('<div class="action-box"><div class="action-lbl">Growth opportunity</div><div style="font-size:13px;color:#e2e0f0;line-height:1.7;">Stable customer. Consider offering premium add-ons or requesting a referral.</div></div>',unsafe_allow_html=True)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# MODULE 2 — Bulk prediction
-# ══════════════════════════════════════════════════════════════════════════════
-with tab2:
-    st.markdown('<div class="section-tag">Upload customer data</div>',
-                unsafe_allow_html=True)
+# ══════════════════════════════════════════════════════════════════
+# TAB 2 — Bulk Prediction
+# ══════════════════════════════════════════════════════════════════
+with t2:
+    st.markdown('<div class="section-pill">Module 02</div>',unsafe_allow_html=True)
+    st.markdown("### Bulk Customer Prediction")
+    st.markdown('<div class="info-banner">Upload a CSV of customers — the app scores every one and returns a ranked at-risk list.</div>',unsafe_allow_html=True)
 
-    st.markdown("""
-    <div style="background:white; border:1px solid #e8e6df; border-radius:10px;
-                padding:20px; margin-bottom:16px; font-size:13px;
-                color:#718096; line-height:1.8;">
-        Upload a CSV file with your customer data. The file should have the same
-        columns as the Telco dataset. The app will predict churn risk for every
-        customer and return a ranked list — highest risk at the top.
-        <br><br>
-        <b style="color:#1a1a2e;">Required columns:</b> tenure, MonthlyCharges,
-        TotalCharges, Contract, InternetService, TechSupport, SeniorCitizen,
-        Partner, Dependents, PaperlessBilling, PaymentMethod, and other
-        service columns.
-    </div>
-    """, unsafe_allow_html=True)
+    sample=pd.DataFrame([{'customerID':'SAMPLE-001','gender':'Male','SeniorCitizen':0,'Partner':'Yes','Dependents':'No','tenure':12,'PhoneService':'Yes','MultipleLines':'No','InternetService':'Fiber optic','OnlineSecurity':'No','OnlineBackup':'Yes','DeviceProtection':'No','TechSupport':'No','StreamingTV':'No','StreamingMovies':'No','Contract':'Month-to-month','PaperlessBilling':'Yes','PaymentMethod':'Electronic check','MonthlyCharges':70.35,'TotalCharges':844.20,'Churn':'No'}])
+    st.download_button("Download CSV template",data=sample.to_csv(index=False),file_name="template.csv",mime="text/csv")
 
-    uploaded_file = st.file_uploader(
-        "Drop your CSV here", type=['csv'],
-        help="Max 50,000 rows. Same format as Telco Customer Churn dataset."
-    )
-
-    if uploaded_file:
+    uploaded=st.file_uploader("Upload customer CSV",type=['csv'])
+    if uploaded:
         try:
-            raw_df = pd.read_csv(uploaded_file)
-            st.success(f"Loaded {len(raw_df):,} customers.")
+            raw=pd.read_csv(uploaded); proc=raw.copy()
+            proc['TotalCharges']=pd.to_numeric(proc['TotalCharges'],errors='coerce')
+            dropped=proc['TotalCharges'].isnull().sum(); proc.dropna(subset=['TotalCharges'],inplace=True)
+            if dropped: st.warning(f"Dropped {dropped} rows with missing TotalCharges.")
+            ids=proc['customerID'] if 'customerID' in proc.columns else pd.RangeIndex(len(proc)).astype(str)
+            for c in ['customerID','Churn']:
+                if c in proc.columns: proc.drop(c,axis=1,inplace=True)
+            le=LabelEncoder()
+            for c in proc.select_dtypes(include='object').columns: proc[c]=le.fit_transform(proc[c])
+            probas=model.predict_proba(proc)[:,1]; preds=(probas>=THRESHOLD).astype(int)
+            results=pd.DataFrame({'Customer ID':ids.values,'Churn Prob (%)': (probas*100).round(1),'Prediction':['Will Churn' if p==1 else 'Will Stay' for p in preds],'Risk Level':['High' if p>=0.75 else 'Medium' if p>=THRESHOLD else 'Low' for p in probas]}).sort_values('Churn Prob (%)',ascending=False)
+            n_total=len(results); n_churn=int(preds.sum())
+            n_high=int((probas>=0.75).sum()); n_med=int(((probas>=THRESHOLD)&(probas<0.75)).sum()); n_low=int((probas<THRESHOLD).sum())
+            avg_m=raw['MonthlyCharges'].mean() if 'MonthlyCharges' in raw.columns else 65
+            rev_risk=n_churn*avg_m*24
 
-            # Preprocess
-            df_proc = raw_df.copy()
-            df_proc['TotalCharges'] = pd.to_numeric(
-                df_proc['TotalCharges'], errors='coerce')
-            null_count = df_proc['TotalCharges'].isnull().sum()
-            df_proc.dropna(subset=['TotalCharges'], inplace=True)
-            if null_count > 0:
-                st.warning(f"Dropped {null_count} rows with missing TotalCharges.")
+            st.markdown('<div class="sec-label">Summary</div>',unsafe_allow_html=True)
+            k1,k2,k3,k4,k5=st.columns(5)
+            k1.markdown(f'<div class="kpi-card"><div class="kpi-val" style="color:#e2e0f0;">{n_total:,}</div><div class="kpi-lbl">Total</div></div>',unsafe_allow_html=True)
+            k2.markdown(f'<div class="kpi-card"><div class="kpi-val" style="color:#ef4444;">{n_churn:,}</div><div class="kpi-lbl">At risk</div><div class="kpi-sub">{n_churn/n_total:.1%}</div></div>',unsafe_allow_html=True)
+            k3.markdown(f'<div class="kpi-card"><div class="kpi-val" style="color:#ef4444;">{n_high:,}</div><div class="kpi-lbl">High risk</div></div>',unsafe_allow_html=True)
+            k4.markdown(f'<div class="kpi-card"><div class="kpi-val" style="color:#f59e0b;">{n_med:,}</div><div class="kpi-lbl">Medium risk</div></div>',unsafe_allow_html=True)
+            k5.markdown(f'<div class="kpi-card"><div class="kpi-val" style="color:#22c55e;">{n_low:,}</div><div class="kpi-lbl">Low risk</div></div>',unsafe_allow_html=True)
 
-            ids = df_proc['customerID'] if 'customerID' in df_proc.columns \
-                  else pd.RangeIndex(len(df_proc)).astype(str)
+            st.markdown(f'<div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:16px 20px;margin:14px 0;"><div style="font-family:JetBrains Mono,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#ef4444;">Revenue at risk</div><div style="font-family:Syne,sans-serif;font-size:28px;font-weight:700;color:#ef4444;">${rev_risk:,.0f}</div><div style="font-size:12px;color:#8885a0;margin-top:4px;">{n_churn} customers × ${avg_m:.0f}/mo × 24 months</div></div>',unsafe_allow_html=True)
 
-            for col in ['customerID', 'Churn']:
-                if col in df_proc.columns:
-                    df_proc.drop(col, axis=1, inplace=True)
+            # Charts
+            fig2,axes2=plt.subplots(1,2,figsize=(10,3.5))
+            for ax in axes2: ps(fig2,ax)
+            sizes=[n_high,n_med,n_low]; clrs=['#ef4444','#f59e0b','#22c55e']; lbls=['High','Medium','Low']
+            if sum(sizes)>0:
+                wedges,_,autotexts=axes2[0].pie(sizes,colors=clrs,autopct='%1.1f%%',startangle=90,pctdistance=.75,wedgeprops=dict(width=.55,edgecolor='#0c0e16',linewidth=2))
+                for at in autotexts: at.set_color('#e2e0f0'); at.set_fontsize(9)
+            axes2[0].set_title('Risk distribution',fontsize=10,pad=10)
+            axes2[0].legend(lbls,loc='lower center',facecolor='#13152a',edgecolor='#1e2133',labelcolor='#8885a0',fontsize=8,ncol=3,bbox_to_anchor=(.5,-.12))
+            axes2[1].hist(probas,bins=25,color='#6c63ff',alpha=.8,edgecolor='#0c0e16')
+            axes2[1].axvline(THRESHOLD,color='#ef4444',ls='--',lw=1.5,label=f'Threshold {THRESHOLD:.2f}')
+            axes2[1].set_xlabel('Churn probability',fontsize=9); axes2[1].set_ylabel('Customers',fontsize=9)
+            axes2[1].set_title('Probability distribution',fontsize=10)
+            axes2[1].legend(facecolor='#13152a',edgecolor='#1e2133',labelcolor='#8885a0',fontsize=8)
+            plt.tight_layout(); st.pyplot(fig2); plt.close()
 
-            from sklearn.preprocessing import LabelEncoder
-            le = LabelEncoder()
-            for col in df_proc.select_dtypes(include='object').columns:
-                df_proc[col] = le.fit_transform(df_proc[col])
-
-            # Predict
-            probas = model.predict_proba(df_proc)[:, 1]
-            preds  = (probas >= THRESHOLD).astype(int)
-
-            results = pd.DataFrame({
-                'Customer ID'       : ids.values,
-                'Churn Probability' : (probas * 100).round(1),
-                'Prediction'        : ['Will Churn' if p == 1
-                                       else 'Will Stay' for p in preds],
-                'Risk Level'        : ['High'   if p >= 0.75
-                                       else 'Medium' if p >= THRESHOLD
-                                       else 'Low'    for p in probas],
-            }).sort_values('Churn Probability', ascending=False)
-
-            # Summary stats
-            n_total  = len(results)
-            n_churn  = (preds == 1).sum()
-            n_high   = (probas >= 0.75).sum()
-            n_medium = ((probas >= THRESHOLD) & (probas < 0.75)).sum()
-            n_low    = (probas < THRESHOLD).sum()
-
-            st.markdown('<div class="section-tag">Summary</div>',
-                        unsafe_allow_html=True)
-            s1, s2, s3, s4, s5 = st.columns(5)
-            s1.markdown(f'<div class="stat-card"><div class="stat-num">{n_total:,}</div><div class="stat-lbl">Total customers</div></div>', unsafe_allow_html=True)
-            s2.markdown(f'<div class="stat-card"><div class="stat-num" style="color:#e53e3e">{n_churn:,}</div><div class="stat-lbl">At risk</div></div>', unsafe_allow_html=True)
-            s3.markdown(f'<div class="stat-card"><div class="stat-num" style="color:#e53e3e">{n_high:,}</div><div class="stat-lbl">High risk</div></div>', unsafe_allow_html=True)
-            s4.markdown(f'<div class="stat-card"><div class="stat-num" style="color:#d69e2e">{n_medium:,}</div><div class="stat-lbl">Medium risk</div></div>', unsafe_allow_html=True)
-            s5.markdown(f'<div class="stat-card"><div class="stat-num" style="color:#38a169">{n_low:,}</div><div class="stat-lbl">Low risk</div></div>', unsafe_allow_html=True)
-
-            # Revenue at risk
-            if 'MonthlyCharges' in raw_df.columns:
-                avg_monthly = raw_df['MonthlyCharges'].mean()
-                revenue_risk = n_churn * avg_monthly * 24
-                st.markdown(f"""
-                <div style="background:#fff5f5; border:1px solid #feb2b2;
-                            border-radius:10px; padding:16px; margin:12px 0;
-                            font-size:13px;">
-                    <b style="color:#e53e3e;">Revenue at risk:</b>
-                    <span style="font-family:DM Mono,monospace; font-size:18px;
-                                 color:#e53e3e; margin-left:10px;">
-                        ${revenue_risk:,.0f}
-                    </span>
-                    <span style="color:#9b97a0; font-size:11px;
-                                 margin-left:8px;">
-                        ({n_churn} customers × ${avg_monthly:.0f}/mo × 24 months)
-                    </span>
-                </div>
-                """, unsafe_allow_html=True)
-
-            # Filter
-            st.markdown('<div class="section-tag">Filter results</div>',
-                        unsafe_allow_html=True)
-            f1, f2 = st.columns(2)
-            risk_filter = f1.multiselect(
-                "Risk level", ["High","Medium","Low"],
-                default=["High","Medium"])
-            top_n = f2.slider("Show top N customers", 10, min(500, n_total), 50)
-
-            filtered = results[results['Risk Level'].isin(risk_filter)].head(top_n)
-
-            # Color rows
-            def color_risk(val):
-                if val == 'High':   return 'color: #e53e3e; font-weight: 600'
-                if val == 'Medium': return 'color: #d69e2e; font-weight: 600'
-                return 'color: #38a169'
-
-            st.dataframe(
-                filtered.style.applymap(
-                    color_risk, subset=['Risk Level']
-                ).format({'Churn Probability': '{:.1f}%'}),
-                use_container_width=True,
-                height=420,
-            )
-
-            # Downloads
-            st.markdown('<div class="section-tag">Export</div>',
-                        unsafe_allow_html=True)
-            dl1, dl2 = st.columns(2)
-
-            full_csv = results.to_csv(index=False)
-            dl1.download_button(
-                "Download full predictions (CSV)",
-                data=full_csv,
-                file_name="churn_predictions_all.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-
-            high_risk_csv = results[results['Risk Level'] == 'High'].to_csv(index=False)
-            dl2.download_button(
-                "Download high-risk call list (CSV)",
-                data=high_risk_csv,
-                file_name="high_risk_customers.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-
+            st.markdown('<div class="sec-label">Filter & export</div>',unsafe_allow_html=True)
+            f1c,f2c=st.columns(2)
+            rf=f1c.multiselect("Risk level",["High","Medium","Low"],default=["High","Medium"])
+            tn=f2c.slider("Top N",10,min(500,n_total),50)
+            filt=results[results['Risk Level'].isin(rf)].head(tn)
+            def color_risk(v):
+                if v=='High':   return 'color:#ef4444;font-weight:600'
+                if v=='Medium': return 'color:#f59e0b;font-weight:600'
+                return 'color:#22c55e'
+            st.dataframe(filt.style.applymap(color_risk,subset=['Risk Level']).format({'Churn Prob (%)':'{:.1f}%'}),use_container_width=True,height=380)
+            d1,d2=st.columns(2)
+            d1.download_button("Download all predictions",data=results.to_csv(index=False),file_name="churn_all.csv",mime="text/csv",use_container_width=True)
+            d2.download_button("Download high-risk call list",data=results[results['Risk Level']=='High'].to_csv(index=False),file_name="high_risk.csv",mime="text/csv",use_container_width=True)
         except Exception as e:
-            st.error(f"Error processing file: {e}")
-            st.info("Make sure your CSV has the same columns as the Telco Customer Churn dataset.")
-
+            st.error(f"Error: {e}")
     else:
-        # Sample template download
-        st.markdown('<div class="section-tag">No file yet</div>',
-                    unsafe_allow_html=True)
-        sample = pd.DataFrame([{
-            'customerID':'SAMPLE-001','gender':'Male','SeniorCitizen':0,
-            'Partner':'Yes','Dependents':'No','tenure':12,
-            'PhoneService':'Yes','MultipleLines':'No',
-            'InternetService':'Fiber optic','OnlineSecurity':'No',
-            'OnlineBackup':'Yes','DeviceProtection':'No',
-            'TechSupport':'No','StreamingTV':'No','StreamingMovies':'No',
-            'Contract':'Month-to-month','PaperlessBilling':'Yes',
-            'PaymentMethod':'Electronic check',
-            'MonthlyCharges':70.35,'TotalCharges':844.20,'Churn':'No'
-        }])
-        st.download_button(
-            "Download sample CSV template",
-            data=sample.to_csv(index=False),
-            file_name="sample_template.csv",
-            mime="text/csv",
-        )
-        st.info("Upload a CSV above to get started. Download the sample template to see the expected format.")
+        st.info("Upload a CSV above. Download the template to see the required format.")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# MODULE 5 — Explainability
-# ══════════════════════════════════════════════════════════════════════════════
-with tab3:
-    st.markdown('<div class="section-tag">Why did the model predict this?</div>',
-                unsafe_allow_html=True)
+# ══════════════════════════════════════════════════════════════════
+# TAB 3 — Analytics Dashboard
+# ══════════════════════════════════════════════════════════════════
+with t3:
+    st.markdown('<div class="section-pill">Module 03 — New in Phase 2</div>',unsafe_allow_html=True)
+    st.markdown("### Analytics Dashboard")
+    st.markdown('<div class="info-banner">Upload your full customer dataset to see health of your entire customer base — churn trends, segment breakdowns, and which groups need the most attention.</div>',unsafe_allow_html=True)
 
-    st.markdown("""
-    <div style="background:white; border:1px solid #e8e6df; border-radius:10px;
-                padding:20px; margin-bottom:20px; font-size:13px;
-                color:#718096; line-height:1.8;">
-        This module explains the model's decisions in plain English.
-        Enter a customer's details below to see exactly which factors are
-        pushing their churn risk up or down — and by how much.
-    </div>
-    """, unsafe_allow_html=True)
+    dash_file=st.file_uploader("Upload customer dataset (CSV)",type=['csv'],key="dash")
+    if dash_file:
+        try:
+            df=pd.read_csv(dash_file); dp=df.copy()
+            dp['TotalCharges']=pd.to_numeric(dp['TotalCharges'],errors='coerce')
+            dp.dropna(subset=['TotalCharges'],inplace=True)
+            dp2=dp.copy()
+            for c in ['customerID','Churn']:
+                if c in dp2.columns: dp2.drop(c,axis=1,inplace=True)
+            le2=LabelEncoder()
+            for c in dp2.select_dtypes(include='object').columns: dp2[c]=le2.fit_transform(dp2[c])
+            probas3=model.predict_proba(dp2)[:,1]; preds3=(probas3>=THRESHOLD).astype(int)
+            dp['pred_prob']=probas3; dp['pred_churn']=preds3
+            dp['risk_level']=['High' if p>=0.75 else 'Medium' if p>=THRESHOLD else 'Low' for p in probas3]
 
-    st.markdown("**Enter customer to explain:**")
-    e1, e2, e3 = st.columns(3)
+            n_t=len(dp); n_r=int(preds3.sum())
+            avg_m3=dp['MonthlyCharges'].mean() if 'MonthlyCharges' in dp.columns else 65
+            rev_r=n_r*avg_m3*24
 
-    with e1:
-        e_tenure   = st.slider("Tenure (months) ", 0, 72, 12, key="e_tenure")
-        e_monthly  = st.number_input("Monthly Charges ($) ", 18.0, 120.0,
-                                     65.0, step=0.5, key="e_monthly")
-        e_contract = st.selectbox("Contract Type ",
-                                  ["Month-to-month","One year","Two year"],
-                                  key="e_contract")
-    with e2:
-        e_internet = st.selectbox("Internet Service ",
-                                  ["DSL","Fiber optic","No"], key="e_internet")
-        e_tech     = st.selectbox("Tech Support ",
-                                  ["No","Yes","No internet service"],
-                                  key="e_tech")
-        e_sec      = st.selectbox("Online Security ",
-                                  ["No","Yes","No internet service"],
-                                  key="e_sec")
-    with e3:
-        e_senior   = st.selectbox("Senior Citizen ",  ["No","Yes"], key="e_senior")
-        e_partner  = st.selectbox("Has Partner ",      ["No","Yes"], key="e_partner")
-        e_paperless= st.selectbox("Paperless Billing ",["No","Yes"], key="e_paperless")
+            st.markdown('<div class="sec-label">Business health overview</div>',unsafe_allow_html=True)
+            ka,kb,kc,kd=st.columns(4)
+            ka.markdown(f'<div class="kpi-card"><div class="kpi-val" style="color:#e2e0f0;">{n_t:,}</div><div class="kpi-lbl">Total customers</div></div>',unsafe_allow_html=True)
+            kb.markdown(f'<div class="kpi-card"><div class="kpi-val" style="color:#ef4444;">{n_r:,}</div><div class="kpi-lbl">At churn risk</div><div class="kpi-sub">{n_r/n_t:.1%} of base</div></div>',unsafe_allow_html=True)
+            kc.markdown(f'<div class="kpi-card"><div class="kpi-val" style="color:#f59e0b;">${avg_m3:.0f}</div><div class="kpi-lbl">Avg monthly rev</div></div>',unsafe_allow_html=True)
+            kd.markdown(f'<div class="kpi-card"><div class="kpi-val" style="color:#ef4444;">${rev_r/1e6:.2f}M</div><div class="kpi-lbl">Revenue at risk (24mo)</div></div>',unsafe_allow_html=True)
 
-    explain_btn = st.button("Explain This Prediction →", key="explain")
+            st.markdown('<div class="sec-label">Churn risk by segment</div>',unsafe_allow_html=True)
+            fig4,axes4=plt.subplots(2,2,figsize=(12,8))
+            for ax in axes4.flat: ps(fig4,ax)
 
-    if explain_btn:
-        inp   = build_input(e_tenure, e_monthly, e_contract, e_internet,
-                            e_tech, e_sec, "No", e_senior, e_partner,
-                            "No", e_paperless, "Electronic check")
-        proba, pred = predict(inp)
-        label, color, css_class = risk_label(proba)
+            if 'Contract' in dp.columns:
+                cg=dp.groupby('Contract')['pred_churn'].mean()*100
+                b1=axes4[0,0].bar(cg.index,cg.values,color=['#6c63ff','#8b5cf6','#a78bfa'],edgecolor='#0c0e16',width=.55)
+                axes4[0,0].set_title('Churn rate by contract',fontsize=10); axes4[0,0].set_ylabel('Churn rate (%)',fontsize=9)
+                for b in b1:
+                    h=b.get_height(); axes4[0,0].text(b.get_x()+b.get_width()/2,h+.5,f'{h:.1f}%',ha='center',va='bottom',fontsize=9,color='#8885a0')
 
+            if 'InternetService' in dp.columns:
+                ig=dp.groupby('InternetService')['pred_churn'].mean()*100
+                b2=axes4[0,1].bar(ig.index,ig.values,color=['#22c55e','#f59e0b','#ef4444'],edgecolor='#0c0e16',width=.55)
+                axes4[0,1].set_title('Churn rate by internet service',fontsize=10)
+                for b in b2:
+                    h=b.get_height(); axes4[0,1].text(b.get_x()+b.get_width()/2,h+.5,f'{h:.1f}%',ha='center',va='bottom',fontsize=9,color='#8885a0')
+
+            if 'tenure' in dp.columns:
+                dp['t_bucket']=pd.cut(dp['tenure'],bins=[0,6,12,24,48,72],labels=['0-6mo','6-12mo','1-2yr','2-4yr','4-6yr'])
+                tg=dp.groupby('t_bucket')['pred_churn'].mean()*100
+                axes4[1,0].plot(tg.index.astype(str),tg.values,color='#6c63ff',lw=2.5,marker='o',markersize=7,markerfacecolor='#6c63ff',markeredgecolor='#0c0e16',markeredgewidth=2)
+                axes4[1,0].fill_between(range(len(tg)),tg.values,alpha=.15,color='#6c63ff')
+                axes4[1,0].set_xticks(range(len(tg))); axes4[1,0].set_xticklabels(tg.index.astype(str),fontsize=8)
+                axes4[1,0].set_title('Churn rate by tenure',fontsize=10); axes4[1,0].set_ylabel('Churn rate (%)',fontsize=9)
+
+            if 'MonthlyCharges' in dp.columns:
+                for rv,cv,lv in [('Low','#22c55e','Low'),('Medium','#f59e0b','Medium'),('High','#ef4444','High')]:
+                    sub=dp[dp['risk_level']==rv]['MonthlyCharges']
+                    if len(sub)>0: axes4[1,1].hist(sub,bins=20,alpha=.6,color=cv,label=lv,edgecolor='#0c0e16')
+                axes4[1,1].set_title('Monthly charges by risk',fontsize=10)
+                axes4[1,1].set_xlabel('Monthly charges ($)',fontsize=9); axes4[1,1].set_ylabel('Count',fontsize=9)
+                axes4[1,1].legend(facecolor='#13152a',edgecolor='#1e2133',labelcolor='#8885a0',fontsize=8)
+
+            plt.tight_layout(pad=2.5); st.pyplot(fig4); plt.close()
+
+            st.markdown('<div class="sec-label">Global feature importance</div>',unsafe_allow_html=True)
+            fi=pd.DataFrame({'Feature':feature_names,'Importance':model.feature_importances_}).sort_values('Importance').tail(12)
+            fig5,ax5=plt.subplots(figsize=(10,5)); ps(fig5,ax5)
+            c5=['#6c63ff' if i>=9 else '#2d2f4e' for i in range(len(fi))]
+            ax5.barh(fi['Feature'],fi['Importance'],color=c5,height=.6)
+            ax5.set_title('Top 12 features driving churn predictions',fontsize=11,pad=10)
+            ax5.set_xlabel('Importance score',fontsize=9)
+            p1=mpatches.Patch(color='#6c63ff',label='Top 3'); p2=mpatches.Patch(color='#2d2f4e',label='Others')
+            ax5.legend(handles=[p1,p2],facecolor='#13152a',edgecolor='#1e2133',labelcolor='#8885a0',fontsize=9)
+            plt.tight_layout(); st.pyplot(fig5); plt.close()
+
+            st.markdown('<div class="sec-label">Top 20 highest risk customers</div>',unsafe_allow_html=True)
+            top20=dp.nlargest(20,'pred_prob')[[c for c in ['customerID','tenure','Contract','MonthlyCharges','InternetService','pred_prob','risk_level'] if c in dp.columns]].copy()
+            top20['pred_prob']=(top20['pred_prob']*100).round(1)
+            top20.columns=[c.replace('pred_prob','Risk %').replace('risk_level','Risk Level') for c in top20.columns]
+            st.dataframe(top20,use_container_width=True,height=320)
+        except Exception as e:
+            st.error(f"Error: {e}")
+    else:
+        st.info("Upload your full customer CSV to see the analytics dashboard.")
+
+
+# ══════════════════════════════════════════════════════════════════
+# TAB 4 — Explainability
+# ══════════════════════════════════════════════════════════════════
+with t4:
+    st.markdown('<div class="section-pill">Module 05</div>',unsafe_allow_html=True)
+    st.markdown("### Why Did the Model Predict This?")
+    st.markdown('<div class="info-banner">Enter a customer to see exactly which factors pushed their churn risk up or down — and what changes would lower their score.</div>',unsafe_allow_html=True)
+
+    ea,eb,ec_col=st.columns(3)
+    with ea:
+        et=st.slider("Tenure ",0,72,12,key="et"); em=st.number_input("Monthly $ ",18.0,120.0,65.0,.5,key="em")
+        ec2=st.selectbox("Contract ",["Month-to-month","One year","Two year"],key="ec2")
+    with eb:
+        ei=st.selectbox("Internet ",["DSL","Fiber optic","No"],key="ei")
+        eth=st.selectbox("Tech support ",["No","Yes","No internet service"],key="eth")
+        es=st.selectbox("Online security ",["No","Yes","No internet service"],key="es")
+    with ec_col:
+        esn=st.selectbox("Senior ",["No","Yes"],key="esn")
+        ep=st.selectbox("Partner ",["No","Yes"],key="ep")
+        epb=st.selectbox("Paperless ",["No","Yes"],key="epb")
+
+    if st.button("Explain This Prediction →",key="xbtn"):
+        inp2=build_input(et,em,ec2,ei,eth,es,"No",esn,ep,"No",epb,"Electronic check")
+        proba2,pred2=predict(inp2); label2,color2,css2=risk_info(proba2)
         st.markdown("---")
+        st.markdown(f'<div style="display:flex;align-items:center;gap:24px;padding:24px;background:#13152a;border:1px solid #1e2133;border-radius:14px;margin-bottom:24px;"><div style="font-family:Syne,sans-serif;font-size:52px;font-weight:700;color:{color2};">{proba2:.1%}</div><div><div style="font-family:Syne,sans-serif;font-size:16px;font-weight:600;color:{color2};">{label2} CHURN RISK</div><div style="font-size:12px;color:#8885a0;margin-top:6px;">{"Model predicts churn." if pred2==1 else "Model predicts stay."} · Threshold: {THRESHOLD:.2f}</div></div></div>',unsafe_allow_html=True)
+        xl,xr=st.columns(2)
+        with xl:
+            st.markdown('<div class="sec-label">Feature impact</div>',unsafe_allow_html=True)
+            impacts=[]
+            if ec2=="Month-to-month": impacts.append(("Contract","Month-to-month → high churn driver",0.92,"#ef4444","+"))
+            elif ec2=="One year":     impacts.append(("Contract","One year → reduces risk",0.55,"#22c55e","−"))
+            else:                     impacts.append(("Contract","Two year → strong retention signal",0.75,"#22c55e","−"))
+            if et<6:   impacts.append(("Tenure",f"{et}mo → very new, highest risk",0.85,"#ef4444","+"))
+            elif et<24:impacts.append(("Tenure",f"{et}mo → building loyalty",0.45,"#f59e0b","+"))
+            else:      impacts.append(("Tenure",f"{et}mo → loyal, low risk",0.60,"#22c55e","−"))
+            if em>80:  impacts.append(("Charges",f"${em:.0f} → above avg",0.70,"#ef4444","+"))
+            elif em>60:impacts.append(("Charges",f"${em:.0f} → moderate",0.35,"#f59e0b","+"))
+            else:      impacts.append(("Charges",f"${em:.0f} → below avg",0.30,"#22c55e","−"))
+            if ei=="Fiber optic": impacts.append(("Internet","Fiber → higher churn than DSL",0.55,"#f59e0b","+"))
+            else:                 impacts.append(("Internet","DSL/No → stable signal",0.30,"#22c55e","−"))
+            if eth=="No": impacts.append(("Tech support","No support → issues cause churn",0.45,"#f59e0b","+"))
+            else:         impacts.append(("Tech support","Has support → stickier",0.50,"#22c55e","−"))
+            impacts.sort(key=lambda x:x[2],reverse=True)
+            for fn,fd,fm,fc,fsign in impacts:
+                bw=int(fm*100)
+                st.markdown(f'<div style="background:#13152a;border:1px solid #1e2133;border-radius:10px;padding:14px 16px;margin:8px 0;"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:13px;color:#e2e0f0;font-weight:500;">{fn}</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;color:{fc};">{fsign} {fm:.0%}</div></div><div style="font-size:11px;color:#6b6888;margin:4px 0 8px;">{fd}</div><div style="height:5px;background:#1e2133;border-radius:3px;overflow:hidden;"><div style="height:100%;width:{bw}%;background:{fc};border-radius:3px;"></div></div></div>',unsafe_allow_html=True)
+        with xr:
+            st.markdown('<div class="sec-label">Global importance</div>',unsafe_allow_html=True)
+            fi2=pd.DataFrame({'Feature':feature_names,'Importance':model.feature_importances_}).sort_values('Importance').tail(10)
+            fig6,ax6=plt.subplots(figsize=(6,5)); ps(fig6,ax6)
+            c6=['#6c63ff' if i>=7 else '#2d2f4e' for i in range(len(fi2))]
+            ax6.barh(fi2['Feature'],fi2['Importance'],color=c6,height=.6)
+            ax6.set_title('Top 10 model weights',fontsize=10,pad=8,fontfamily='monospace')
+            ax6.set_xlabel('Importance',fontsize=9)
+            p1=mpatches.Patch(color='#6c63ff',label='Top 3'); p2=mpatches.Patch(color='#2d2f4e',label='Others')
+            ax6.legend(handles=[p1,p2],facecolor='#13152a',edgecolor='#1e2133',labelcolor='#8885a0',fontsize=8)
+            plt.tight_layout(); st.pyplot(fig6); plt.close()
 
-        # Top result line
-        st.markdown(f"""
-        <div style="display:flex; align-items:center; gap:20px;
-                    padding: 20px; background:white;
-                    border:1px solid #e8e6df; border-radius:10px;
-                    margin-bottom:20px;">
-            <div style="font-family:DM Mono,monospace; font-size:40px;
-                        font-weight:500; color:{color};">{proba:.1%}</div>
-            <div>
-                <div style="font-family:DM Mono,monospace; font-size:14px;
-                            font-weight:500; color:{color};">
-                    {label} CHURN RISK
-                </div>
-                <div style="font-size:12px; color:#9b97a0; margin-top:4px;">
-                    {"Model predicts this customer will churn."
-                     if pred == 1 else
-                     "Model predicts this customer will stay."}
-                    &nbsp;Threshold: {THRESHOLD:.2f}
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            st.markdown('<div class="sec-label" style="margin-top:14px;">What would lower this risk?</div>',unsafe_allow_html=True)
+            sugg=[]
+            if ec2=="Month-to-month": sugg.append(("Switch to 1-year contract",f"Risk drops ~22% → ~{max(proba2-.22,.05):.0%}","#22c55e"))
+            if eth=="No":   sugg.append(("Add tech support","Risk drops ~8–12%","#22c55e"))
+            if es=="No":    sugg.append(("Add online security","Risk drops ~5–8%","#22c55e"))
+            if et<12:       sugg.append(("Offer early loyalty reward","First-year retention offers cut churn ~18%","#22c55e"))
+            if not sugg:    sugg.append(("Already low risk","Focus on upsell","#8885a0"))
+            for st_t,st_n,st_c in sugg:
+                st.markdown(f'<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #1e2133;"><div style="color:{st_c};font-size:18px;margin-top:1px;">↓</div><div><div style="font-size:13px;color:#e2e0f0;font-weight:500;">{st_t}</div><div style="font-size:11px;color:#6b6888;margin-top:2px;">{st_n}</div></div></div>',unsafe_allow_html=True)
 
-        left, right = st.columns([1, 1])
 
-        with left:
-            st.markdown('<div class="section-tag">Feature impact breakdown</div>',
-                        unsafe_allow_html=True)
+# ══════════════════════════════════════════════════════════════════
+# TAB 5 — ROI Calculator
+# ══════════════════════════════════════════════════════════════════
+with t5:
+    st.markdown('<div class="section-pill">Module 06 — New in Phase 2</div>',unsafe_allow_html=True)
+    st.markdown("### Business ROI Calculator")
+    st.markdown('<div class="info-banner">Enter your business numbers to see the exact financial impact of using ChurnGuard vs doing nothing.</div>',unsafe_allow_html=True)
 
-            # Build feature impact scores manually
-            # (rule-based approximation for explainability without SHAP)
-            feature_impacts = []
+    rc1,rc2=st.columns(2)
+    with rc1:
+        st.markdown("**Your business**")
+        total_cust  =st.number_input("Total customers",100,1000000,10000,100)
+        avg_rev     =st.number_input("Avg monthly revenue per customer ($)",5.0,500.0,65.0,1.0)
+        churn_rate  =st.slider("Current monthly churn rate (%)",1.0,30.0,26.5,.5)
+        ret_cost    =st.number_input("Cost per retention offer ($)",1.0,200.0,15.0,1.0)
+        cust_life   =st.slider("Customer lifetime (months)",6,60,24,1)
+    with rc2:
+        st.markdown("**Model performance**")
+        m_recall =st.slider("Model recall — % churners caught",10,100,62,1)
+        m_prec   =st.slider("Model precision — % predictions correct",10,100,60,1)
+        st.markdown('<div style="background:#13152a;border:1px solid #1e2133;border-radius:10px;padding:14px;margin-top:8px;font-size:12px;color:#8885a0;line-height:1.8;"><b style="color:#e2e0f0;">Recall</b> = how many churners you catch<br><b style="color:#e2e0f0;">Precision</b> = how many flagged are real churners<br><span style="color:#6c63ff;">Your model: Recall 62.3% · Precision 60.4%</span></div>',unsafe_allow_html=True)
 
-            # Contract impact
-            if e_contract == "Month-to-month":
-                feature_impacts.append(("Contract type",
-                    "Month-to-month → HIGH impact toward churn",
-                    0.92, "#e53e3e", "+"))
-            elif e_contract == "One year":
-                feature_impacts.append(("Contract type",
-                    "One year → reduces churn risk",
-                    0.55, "#38a169", "−"))
-            else:
-                feature_impacts.append(("Contract type",
-                    "Two year → strong retention signal",
-                    0.75, "#38a169", "−"))
+    st.markdown("---")
 
-            # Tenure impact
-            if e_tenure < 6:
-                feature_impacts.append(("Tenure",
-                    f"{e_tenure} months → very new, high risk period",
-                    0.85, "#e53e3e", "+"))
-            elif e_tenure < 24:
-                feature_impacts.append(("Tenure",
-                    f"{e_tenure} months → moderate risk, still early",
-                    0.45, "#d69e2e", "+"))
-            else:
-                feature_impacts.append(("Tenure",
-                    f"{e_tenure} months → loyal customer, low risk",
-                    0.60, "#38a169", "−"))
+    churners   =total_cust*(churn_rate/100)
+    ltv2       =avg_rev*cust_life
+    tp2        =churners*(m_recall/100)
+    fp2        =tp2*((100-m_prec)/max(m_prec,1))
+    fn2        =churners-tp2
+    rev_saved2 =tp2*ltv2; rev_lost2=fn2*ltv2
+    camp_cost2 =(tp2+fp2)*ret_cost; net_ben2=rev_saved2-camp_cost2
+    base_loss2 =churners*ltv2; roi2=(net_ben2/max(camp_cost2,1))*100
 
-            # Monthly charges
-            if e_monthly > 80:
-                feature_impacts.append(("Monthly charges",
-                    f"${e_monthly:.0f}/mo → above average, increases risk",
-                    0.70, "#e53e3e", "+"))
-            elif e_monthly > 60:
-                feature_impacts.append(("Monthly charges",
-                    f"${e_monthly:.0f}/mo → moderate, slight risk",
-                    0.35, "#d69e2e", "+"))
-            else:
-                feature_impacts.append(("Monthly charges",
-                    f"${e_monthly:.0f}/mo → below average, lower risk",
-                    0.30, "#38a169", "−"))
+    st.markdown('<div class="sec-label">Monthly impact</div>',unsafe_allow_html=True)
+    rk1,rk2,rk3,rk4=st.columns(4)
+    rk1.markdown(f'<div class="roi-card"><div class="roi-num" style="color:#22c55e;">${net_ben2:,.0f}</div><div class="roi-lbl">Net benefit / month</div></div>',unsafe_allow_html=True)
+    rk2.markdown(f'<div class="roi-card"><div class="roi-num" style="color:#6c63ff;">{roi2:.0f}%</div><div class="roi-lbl">ROI on campaign</div></div>',unsafe_allow_html=True)
+    rk3.markdown(f'<div class="roi-card"><div class="roi-num" style="color:#ef4444;">${rev_lost2:,.0f}</div><div class="roi-lbl">Revenue still lost</div></div>',unsafe_allow_html=True)
+    rk4.markdown(f'<div class="roi-card"><div class="roi-num" style="color:#f59e0b;">${camp_cost2:,.0f}</div><div class="roi-lbl">Campaign cost</div></div>',unsafe_allow_html=True)
 
-            # Internet service
-            if e_internet == "Fiber optic":
-                feature_impacts.append(("Internet service",
-                    "Fiber optic → higher churn rate than DSL",
-                    0.55, "#d69e2e", "+"))
-            elif e_internet == "No":
-                feature_impacts.append(("Internet service",
-                    "No internet → less engagement, moderate risk",
-                    0.30, "#9b97a0", "~"))
-            else:
-                feature_impacts.append(("Internet service",
-                    "DSL → lower churn rate, stable signal",
-                    0.35, "#38a169", "−"))
+    st.markdown('<div class="sec-label" style="margin-top:20px;">Full breakdown</div>',unsafe_allow_html=True)
+    bd1,bd2=st.columns(2)
+    with bd1:
+        rows=[("Total customers",f"{total_cust:,}"),("Monthly churners",f"{churners:.0f}"),("Caught by model (TP)",f"{tp2:.0f}"),("Missed by model (FN)",f"{fn2:.0f}"),("False alarms (FP)",f"{fp2:.0f}"),("Customer LTV",f"${ltv2:,.0f}"),("Revenue saved",f"${rev_saved2:,.0f}"),("Revenue lost (FN)",f"${rev_lost2:,.0f}"),("Campaign cost",f"${camp_cost2:,.0f}"),("Net benefit",f"${net_ben2:,.0f}"),("ROI",f"{roi2:.0f}%"),("Doing nothing costs",f"${base_loss2:,.0f}/mo")]
+        for lbl,val in rows:
+            vc="#22c55e" if "saved" in lbl.lower() or "benefit" in lbl.lower() or lbl=="ROI" else "#ef4444" if "lost" in lbl.lower() or "missed" in lbl.lower() or "nothing" in lbl.lower() else "#e2e0f0"
+            st.markdown(f'<div class="stat-row"><div class="stat-lbl">{lbl}</div><div class="stat-val" style="color:{vc};">{val}</div></div>',unsafe_allow_html=True)
+    with bd2:
+        fig7,ax7=plt.subplots(figsize=(6,5)); ps(fig7,ax7)
+        cats=['Baseline\nloss','Revenue\nsaved','Revenue\nlost','Campaign\ncost','Net\nbenefit']
+        vals=[base_loss2,rev_saved2,-rev_lost2,-camp_cost2,net_ben2]
+        c7=['#2d2f4e','#22c55e','#ef4444','#f59e0b','#22c55e' if net_ben2>0 else '#ef4444']
+        bars7=ax7.bar(cats,vals,color=c7,edgecolor='#0c0e16',width=.6)
+        ax7.axhline(0,color='#1e2133',lw=1)
+        ax7.set_title('Monthly financial impact ($)',fontsize=10,pad=10)
+        ax7.set_ylabel('Amount ($)',fontsize=9)
+        for b in bars7:
+            h=b.get_height()
+            ax7.text(b.get_x()+b.get_width()/2,h+(abs(h)*.03) if h>=0 else h-(abs(h)*.05),f'${abs(h):,.0f}',ha='center',va='bottom' if h>=0 else 'top',fontsize=8,color='#8885a0')
+        plt.xticks(fontsize=8); plt.tight_layout()
+        st.pyplot(fig7); plt.close()
 
-            # Tech support
-            if e_tech == "No":
-                feature_impacts.append(("Tech support",
-                    "No support → when issues arise, customer may leave",
-                    0.45, "#d69e2e", "+"))
-            elif e_tech == "Yes":
-                feature_impacts.append(("Tech support",
-                    "Has support → problems get solved, customer stays",
-                    0.50, "#38a169", "−"))
+    st.markdown(f'<div style="background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.25);border-radius:14px;padding:24px;margin-top:20px;text-align:center;"><div style="font-family:JetBrains Mono,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#22c55e;margin-bottom:8px;">Annual projection</div><div style="font-family:Syne,sans-serif;font-size:42px;font-weight:700;color:#22c55e;">${net_ben2*12:,.0f}</div><div style="font-size:13px;color:#8885a0;margin-top:8px;">Net annual benefit · vs ${base_loss2*12:,.0f} lost doing nothing</div></div>',unsafe_allow_html=True)
 
-            # Online security
-            if e_sec == "No":
-                feature_impacts.append(("Online security",
-                    "No security add-on → less invested in the service",
-                    0.35, "#9b97a0", "+"))
-            else:
-                feature_impacts.append(("Online security",
-                    "Has security → more add-ons = stickier customer",
-                    0.40, "#38a169", "−"))
-
-            # Sort by impact magnitude
-            feature_impacts.sort(key=lambda x: x[2], reverse=True)
-
-            for fname, fdesc, fmag, fcolor, fsign in feature_impacts:
-                bar_pct = int(fmag * 100)
-                st.markdown(f"""
-                <div class="shap-card">
-                    <div style="display:flex; justify-content:space-between;
-                                align-items:center;">
-                        <div class="shap-feature">{fname}</div>
-                        <div style="font-family:DM Mono,monospace;
-                                    font-size:13px; color:{fcolor};">
-                            {fsign} {fmag:.0%}
-                        </div>
-                    </div>
-                    <div class="shap-impact">{fdesc}</div>
-                    <div class="shap-bar-bg">
-                        <div style="height:100%; width:{bar_pct}%;
-                                    background:{fcolor}; border-radius:3px;">
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-        with right:
-            st.markdown('<div class="section-tag">Global feature importance</div>',
-                        unsafe_allow_html=True)
-
-            importances = model.feature_importances_
-            feat_df = pd.DataFrame({
-                'Feature'   : feature_names,
-                'Importance': importances
-            }).sort_values('Importance').tail(10)
-
-            fig, ax = plt.subplots(figsize=(6, 5.5),
-                                   facecolor='#f7f6f2')
-            ax.set_facecolor('#f7f6f2')
-            bar_colors = ['#1a1a2e' if i >= 7 else '#d4d2cc'
-                          for i in range(len(feat_df))]
-            ax.barh(feat_df['Feature'], feat_df['Importance'],
-                    color=bar_colors, height=0.6)
-            ax.set_xlabel('Importance score', color='#9b97a0', fontsize=9)
-            ax.set_title('Top 10 — what the model\nrelies on globally',
-                         color='#1a1a2e', fontsize=11, pad=10,
-                         fontfamily='monospace')
-            ax.tick_params(colors='#9b97a0', labelsize=9)
-            for sp in ax.spines.values():
-                sp.set_visible(False)
-
-            dark = mpatches.Patch(color='#1a1a2e', label='Top 3 features')
-            gray = mpatches.Patch(color='#d4d2cc', label='Other features')
-            ax.legend(handles=[dark, gray],
-                      facecolor='#f7f6f2', edgecolor='#e8e6df',
-                      labelcolor='#9b97a0', fontsize=9)
-            st.pyplot(fig)
-            plt.close()
-
-            # What would reduce risk?
-            st.markdown('<div class="section-tag">What would lower this risk?</div>',
-                        unsafe_allow_html=True)
-
-            suggestions = []
-            if e_contract == "Month-to-month":
-                curr_p = proba
-                suggestions.append((
-                    "Switch to 1-year contract",
-                    f"Risk would drop from {curr_p:.0%} to ~{max(curr_p - 0.22, 0.05):.0%}",
-                    "#38a169"
-                ))
-            if e_tech == "No":
-                suggestions.append((
-                    "Add tech support",
-                    f"Risk would drop by ~8–12%",
-                    "#38a169"
-                ))
-            if e_sec == "No":
-                suggestions.append((
-                    "Add online security",
-                    f"Risk would drop by ~5–8%",
-                    "#38a169"
-                ))
-            if e_tenure < 12:
-                suggestions.append((
-                    "Offer an early loyalty reward",
-                    "Retention offers in first 12 months reduce churn by ~18%",
-                    "#38a169"
-                ))
-            if not suggestions:
-                suggestions.append((
-                    "Customer is already low risk",
-                    "No specific changes needed — focus on upsell",
-                    "#9b97a0"
-                ))
-
-            for s_title, s_note, s_color in suggestions:
-                st.markdown(f"""
-                <div style="display:flex; gap:12px; padding:10px 0;
-                            border-bottom:1px solid #f0ede8;
-                            align-items:flex-start;">
-                    <div style="color:{s_color}; font-size:16px; margin-top:1px;">↓</div>
-                    <div>
-                        <div style="font-size:13px; color:#1a1a2e;
-                                    font-weight:500;">{s_title}</div>
-                        <div style="font-size:11px; color:#9b97a0;
-                                    margin-top:2px;">{s_note}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-# ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown("---")
-st.markdown("""
-<div style='text-align:center; font-family: DM Mono, monospace;
-            font-size: 11px; color: #9b97a0; padding: 12px 0;'>
-    ChurnGuard v1.0 &nbsp;·&nbsp; Random Forest &nbsp;·&nbsp;
-    AUC-ROC 0.8353 &nbsp;·&nbsp; Threshold 0.63 &nbsp;·&nbsp;
-    Built with Streamlit
-</div>
-""", unsafe_allow_html=True)
+st.markdown('<div style="text-align:center;font-family:JetBrains Mono,monospace;font-size:10px;color:#3d3f5a;padding:14px 0;">ChurnGuard Pro v2.0 · Random Forest · AUC-ROC 0.8353 · Phase 2 Complete</div>',unsafe_allow_html=True)
