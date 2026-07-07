@@ -3,9 +3,21 @@
 A machine learning web app that predicts telecom customer churn in real time.
 
 ## Features
-- **Module 1** — Single customer prediction with risk level and retention recommendation
-- **Module 2** — Bulk CSV upload with ranked risk list and export
+- **Home page** — public landing page with a "Get Started" button that leads into sign in / create account
+- **Module 1** — Single customer prediction with risk level, retention recommendation, and a live gauge
+- **Module 2** — Bulk CSV upload with ranked risk list, an interactive 3D risk map, and export
+- **Module 3** — Analytics dashboard with a 3D portfolio scatter (tenure × monthly charges × churn %)
 - **Module 5** — Explainability — why did the model predict this?
+- **Module 6** — ROI calculator with an ROI gauge and a cost/benefit waterfall chart
+
+## Google sign-in
+"Continue with Google" needs three secrets set in `.streamlit/secrets.toml`:
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `REDIRECT_URI`. If it's not working,
+open the "Google sign-in not working?" expander on the sign-in page — it shows
+the exact redirect URI the app is using, which must match an **Authorized
+redirect URI** on your OAuth client in the Google Cloud Console exactly
+(scheme, host, and no trailing slash). If your OAuth consent screen is in
+**Testing** mode, only emails added under **Test users** can sign in.
 
 ## Setup
 

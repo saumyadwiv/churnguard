@@ -1,0 +1,16 @@
+# Virtual environment — never commit this
+venv/
+env/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Secrets — never commit real credentials
+.streamlit/secrets.toml
+
+# OS/editor junk
+.DS_Store
+.vscode/
+.idea/

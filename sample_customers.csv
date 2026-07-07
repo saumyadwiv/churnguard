@@ -1,0 +1,21 @@
+customerID,gender,SeniorCitizen,Partner,Dependents,tenure,PhoneService,MultipleLines,InternetService,OnlineSecurity,OnlineBackup,DeviceProtection,TechSupport,StreamingTV,StreamingMovies,Contract,PaperlessBilling,PaymentMethod,MonthlyCharges,TotalCharges,Churn
+CUST-001,Male,0,Yes,No,2,Yes,No,Fiber optic,No,Yes,No,No,Yes,No,Month-to-month,Yes,Electronic check,70.35,844.20,No
+CUST-002,Female,0,No,No,34,Yes,Yes,DSL,Yes,No,Yes,Yes,No,No,One year,No,Mailed check,65.45,2225.30,No
+CUST-003,Male,1,Yes,Yes,9,No,No,Fiber optic,No,No,No,No,Yes,Yes,Month-to-month,Yes,Electronic check,105.65,950.85,Yes
+CUST-004,Female,0,Yes,Yes,48,Yes,Yes,DSL,Yes,Yes,Yes,Yes,Yes,Yes,Two year,Yes,Bank transfer,89.75,4314.00,No
+CUST-005,Male,0,No,No,1,No,No,No,No,No,No,No,No,No,Month-to-month,Yes,Electronic check,29.85,29.85,Yes
+CUST-006,Female,0,Yes,No,28,Yes,No,DSL,No,Yes,Yes,No,No,Yes,Two year,No,Credit card,64.30,1798.40,No
+CUST-007,Male,0,No,No,6,Yes,Yes,Fiber optic,No,No,No,No,No,No,Month-to-month,No,Mailed check,75.20,451.20,Yes
+CUST-008,Female,1,Yes,Yes,72,Yes,Yes,DSL,Yes,Yes,Yes,Yes,Yes,Yes,Two year,Yes,Bank transfer,94.85,6836.20,No
+CUST-009,Male,0,No,No,3,No,No,No,No,No,No,No,No,No,Month-to-month,Yes,Electronic check,20.00,60.00,Yes
+CUST-010,Female,0,Yes,Yes,55,Yes,Yes,Fiber optic,Yes,No,Yes,Yes,Yes,No,One year,No,Bank transfer,99.45,5469.75,No
+CUST-011,Male,0,No,No,14,Yes,No,DSL,No,Yes,No,No,Yes,Yes,Month-to-month,Yes,Electronic check,58.50,819.00,Yes
+CUST-012,Female,0,Yes,No,36,Yes,Yes,DSL,Yes,Yes,Yes,No,No,No,Two year,Yes,Mailed check,72.10,2595.60,No
+CUST-013,Male,1,No,No,22,Yes,Yes,Fiber optic,No,No,No,Yes,Yes,Yes,One year,No,Credit card,88.75,1952.50,No
+CUST-014,Female,0,No,No,8,No,No,DSL,No,No,No,No,No,No,Month-to-month,Yes,Electronic check,45.30,362.40,Yes
+CUST-015,Male,0,Yes,Yes,60,Yes,Yes,Fiber optic,Yes,Yes,Yes,Yes,Yes,Yes,Two year,Yes,Bank transfer,109.95,6597.00,No
+CUST-016,Female,0,No,No,4,Yes,No,No,No,No,No,No,No,No,Month-to-month,No,Electronic check,39.50,158.00,Yes
+CUST-017,Male,0,Yes,No,44,Yes,Yes,DSL,Yes,No,Yes,Yes,No,Yes,Two year,No,Mailed check,67.80,2983.20,No
+CUST-018,Female,1,Yes,Yes,18,Yes,Yes,Fiber optic,No,Yes,No,No,Yes,Yes,Month-to-month,Yes,Electronic check,95.25,1714.50,Yes
+CUST-019,Male,0,No,No,50,Yes,Yes,DSL,Yes,Yes,Yes,Yes,Yes,No,Two year,Yes,Bank transfer,86.45,4322.50,No
+CUST-020,Female,0,Yes,No,11,Yes,No,Fiber optic,No,No,No,No,No,No,Month-to-month,Yes,Electronic check,75.80,833.80,Yes
