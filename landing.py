@@ -113,7 +113,7 @@ def _hero() -> None:
                 st.session_state.site_entered = True
                 st.rerun()
         with b2:
-            st.link_button("View on GitHub", "https://github.com", use_container_width=True)
+            st.link_button("View on GitHub", "https://github.com/saumyadwiv/churnguard", use_container_width=True)
 
         st.markdown("""
         <div class="lp-stats">
