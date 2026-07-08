@@ -68,15 +68,61 @@ No spinner-and-hope waiting — bulk predictions on thousands of rows score in s
 
 ## 🧭 Product Walkthrough
 
-| Page | What it shows |
-|---|---|
-| 🏠 **Landing Page** | A public hero page with a 3D-tilted CSS dashboard mockup and live stats — before anyone signs in |
-| 🔑 **Sign In / Create Account** | Email + password, or one click with **Continue with Google** — accounts merge by email either way |
-| 🎯 **Single Predict** | Score one customer instantly with a live gauge and a plain-English retention recommendation |
-| 📊 **Bulk Predict** | Upload a CSV, get a ranked at-risk list plus an interactive 3D risk map of the whole batch |
-| 📈 **Analytics Dashboard** | Portfolio-level churn patterns by contract, tenure, and service — spot the segments that matter |
-| 🔍 **Explainability** | Every prediction comes with the factors actually driving it, not just a number |
-| 💰 **ROI Calculator** | Turn a batch of predictions into a dollar figure — cost, revenue protected, and ROI % |
+### 1. Landing Page
+A public hero page with a 3D-tilted CSS dashboard mockup and live stats — before anyone signs in.
+
+<img src="./docs/screenshots/landing-page.png" width="85%" />
+
+### 2. Sign In / Create Account
+Email + password, or one click with **Continue with Google** — accounts merge by email either way.
+
+<img src="./docs/screenshots/signin.png" width="70%" />
+
+### 3. Single Predict
+Score one customer instantly with a live gauge and a plain-English retention recommendation.
+
+<p float="left">
+  <img src="./docs/screenshots/single-predict-1.png" width="49%" />
+  <img src="./docs/screenshots/single-predict-2.png" width="49%" />
+</p>
+
+### 4. Bulk Predict
+Upload a CSV, get a ranked at-risk list plus an interactive 3D risk map of the whole batch.
+
+<p float="left">
+  <img src="./docs/screenshots/bulk-predict-1.png" width="49%" />
+  <img src="./docs/screenshots/bulk-predict-2.png" width="49%" />
+</p>
+<img src="./docs/screenshots/bulk-predict-3.png" width="85%" />
+
+### 5. Analytics Dashboard
+Portfolio-level churn patterns by contract, tenure, and service — spot the segments that matter.
+
+<p float="left">
+  <img src="./docs/screenshots/analytics-1.png" width="49%" />
+  <img src="./docs/screenshots/analytics-2.png" width="49%" />
+</p>
+
+### 6. My History
+Every saved prediction, per user, with retention-outcome tracking over time.
+
+<img src="./docs/screenshots/my-history.png" width="85%" />
+
+### 7. Explainability
+Every prediction comes with the factors actually driving it, not just a number.
+
+<p float="left">
+  <img src="./docs/screenshots/explainability-1.png" width="49%" />
+  <img src="./docs/screenshots/explainability-2.png" width="49%" />
+</p>
+
+### 8. ROI Calculator
+Turn a batch of predictions into a dollar figure — cost, revenue protected, and ROI %.
+
+<p float="left">
+  <img src="./docs/screenshots/roi-calculator-1.png" width="49%" />
+  <img src="./docs/screenshots/roi-calculator-2.png" width="49%" />
+</p>
 
 ---
 
