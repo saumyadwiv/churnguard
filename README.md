@@ -1,12 +1,10 @@
 <div align="center">
 
-<img src="https://em-content.zobj.net/source/apple/354/shield_1f6e1-fe0f.png" alt="ChurnGuard Pro" width="72"/>
-
-# ChurnGuard Pro
+# 🛡️ ChurnGuard Pro
 ### AI-Powered Customer Churn Intelligence Platform
 **Upload a customer, a CSV, or a whole portfolio → get a churn-risk score, an explanation, and a dollar figure for what it's worth to act on it.**
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-churnguard.streamlit.app-8b5cf6?style=for-the-badge)](https://churnguard.streamlit.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-churnguard--nxbzrsnfip8ikeanyms9xu.streamlit.app-8b5cf6?style=for-the-badge)](https://churnguard-nxbzrsnfip8ikeanyms9xu.streamlit.app/)
 
 <br/>
 
@@ -70,42 +68,15 @@ No spinner-and-hope waiting — bulk predictions on thousands of rows score in s
 
 ## 🧭 Product Walkthrough
 
-### 1. Landing Page
-A public hero page with a 3D-tilted CSS dashboard mockup and live stats — before anyone signs in.
-
-![Landing Page](./docs/screenshots/landing-page.png)
-
-### 2. Sign In / Create Account
-Email + password, or one click with **Continue with Google** — accounts merge by email either way.
-
-![Sign In](./docs/screenshots/signin.png)
-
-### 3. Single Predict
-Score one customer instantly with a live gauge and a plain-English retention recommendation.
-
-![Single Predict](./docs/screenshots/single-predict.png)
-
-### 4. Bulk Predict
-Upload a CSV, get a ranked at-risk list plus an interactive 3D risk map of the whole batch.
-
-![Bulk Predict](./docs/screenshots/bulk-predict.png)
-
-### 5. Analytics Dashboard
-Portfolio-level churn patterns by contract, tenure, and service — spot the segments that matter.
-
-![Analytics](./docs/screenshots/analytics.png)
-
-### 6. Explainability
-Every prediction comes with the factors actually driving it, not just a number.
-
-![Explainability](./docs/screenshots/explainability.png)
-
-### 7. ROI Calculator
-Turn a batch of predictions into a dollar figure — cost, revenue protected, and ROI %.
-
-![ROI Calculator](./docs/screenshots/roi-calculator.png)
-
-> **Adding your own screenshots:** drop image files into `docs/screenshots/`, then reference them anywhere in this README with `![Alt text](./docs/screenshots/your-image.png)`. GitHub renders them automatically.
+| Page | What it shows |
+|---|---|
+| 🏠 **Landing Page** | A public hero page with a 3D-tilted CSS dashboard mockup and live stats — before anyone signs in |
+| 🔑 **Sign In / Create Account** | Email + password, or one click with **Continue with Google** — accounts merge by email either way |
+| 🎯 **Single Predict** | Score one customer instantly with a live gauge and a plain-English retention recommendation |
+| 📊 **Bulk Predict** | Upload a CSV, get a ranked at-risk list plus an interactive 3D risk map of the whole batch |
+| 📈 **Analytics Dashboard** | Portfolio-level churn patterns by contract, tenure, and service — spot the segments that matter |
+| 🔍 **Explainability** | Every prediction comes with the factors actually driving it, not just a number |
+| 💰 **ROI Calculator** | Turn a batch of predictions into a dollar figure — cost, revenue protected, and ROI % |
 
 ---
 
@@ -164,29 +135,23 @@ sequenceDiagram
     end
 ```
 
-### Sign-In Flow (email + Google, merged by email)
+### Sign-In Flow
 
 ```mermaid
-sequenceDiagram
-    participant U as User
-    participant S as Streamlit App
-    participant G as Google OAuth
-    participant DB as MongoDB
+flowchart LR
+    U([User]) --> C{Sign in with}
+    C -->|Email + password| P[Verify against MongoDB]
+    C -->|Google| G[Google OAuth] --> P
+    P --> S([Session started])
 
-    alt Email + Password
-        U->>S: Submit email + password
-        S->>DB: Verify bcrypt hash
-        DB-->>S: User record
-    else Continue with Google
-        U->>S: Click "Continue with Google"
-        S->>G: Redirect to consent screen
-        G-->>S: Authorization code → callback
-        S->>G: Exchange code for tokens
-        G-->>S: Profile (email, name, picture)
-        S->>DB: Find or create user by email
-    end
-    S-->>U: Session started → redirect into app
+    style U fill:#0d1117,stroke:#8b5cf6,color:#ffffff
+    style S fill:#0d1117,stroke:#22c55e,color:#ffffff
+    style C fill:#13152a,stroke:#4285F4,color:#ffffff
+    style P fill:#13152a,stroke:#4285F4,color:#ffffff
+    style G fill:#13152a,stroke:#4285F4,color:#ffffff
 ```
+
+One account per email — sign in with either method and land in the same account.
 
 ---
 
@@ -243,7 +208,7 @@ ChurnGuard Pro runs on **Streamlit Community Cloud**, deployed straight from `ma
 
 ## 🌐 Live Demo
 
-🔗 **[churnguard.streamlit.app](https://churnguard.streamlit.app)**
+🔗 **[churnguard-nxbzrsnfip8ikeanyms9xu.streamlit.app](https://churnguard-nxbzrsnfip8ikeanyms9xu.streamlit.app/)**
 
 **Try it yourself:**
 1. From the landing page, click **Get Started** → sign up with email or Google
