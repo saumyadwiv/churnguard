@@ -555,7 +555,7 @@ with t2:
                             if v=='High':   return 'color:#ef4444;font-weight:600'
                             if v=='Medium': return 'color:#f59e0b;font-weight:600'
                             return 'color:#22c55e'
-                        st.dataframe(filt.style.applymap(cr,subset=['Risk Level']).format({'Churn Prob (%)':'{:.1f}%'}),use_container_width=True,height=360)
+                        st.dataframe(filt.style.map(cr,subset=['Risk Level']).format({'Churn Prob (%)':'{:.1f}%'}),use_container_width=True,height=360)
                         d1,d2 = st.columns(2)
                         d1.download_button("Download all", data=results.to_csv(index=False), file_name="churn_all.csv", mime="text/csv", use_container_width=True)
                         d2.download_button("Download high-risk", data=results[results['Risk Level']=='High'].to_csv(index=False), file_name="high_risk.csv", mime="text/csv", use_container_width=True)
@@ -708,8 +708,8 @@ with t4:
 
             st.dataframe(
                 preds_df.style
-                    .applymap(sr, subset=['Risk Level'])
-                    .applymap(sc, subset=['Will Churn'])
+                    .map(sr, subset=['Risk Level'])
+                    .map(sc, subset=['Will Churn'])
                     .format({'Churn Prob':'{:.1f}%', 'Monthly $':'${:.0f}'}),
                 use_container_width=True, height=420,
             )
