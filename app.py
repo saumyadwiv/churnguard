@@ -110,6 +110,7 @@ USER_NAME  = user["name"]
 USER_TIER  = user.get("tier", "free")
 
 ensure_indexes()
+st.write("DEBUG secrets found:", list(st.secrets.keys()))
 
 
 # ── Load model ─────────────────────────────────────────────────────────────────
